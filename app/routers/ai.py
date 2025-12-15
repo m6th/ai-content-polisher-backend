@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime
-import openai
+from groq import Groq
 import os
 from ..database import get_db
 from ..auth import get_current_user
@@ -49,8 +49,8 @@ class ImproveResponse(BaseModel):
     improved_content: str
     improvements: List[str]
 
-# Initialize OpenAI
-openai.api_key = os.getenv("OPENAI_API_KEY")
+# Initialize Groq
+groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 @router.post("/hashtags", response_model=HashtagResponse)
 async def generate_hashtags(
@@ -84,8 +84,8 @@ Requirements:
 
 Hashtags:"""
 
-        response = openai.chat.completions.create(
-            model="gpt-4o-mini",
+        response = groq_client.chat.completions.create(
+            model="llama-3.1-70b-versatile",
             messages=[
                 {"role": "system", "content": "You are a social media expert specializing in hashtag strategy."},
                 {"role": "user", "content": prompt}
@@ -121,8 +121,8 @@ Content: {request.content[:300]}
 
 Return ONLY the emojis, separated by spaces, no explanations."""
 
-        response = openai.chat.completions.create(
-            model="gpt-4o-mini",
+        response = groq_client.chat.completions.create(
+            model="llama-3.1-70b-versatile",
             messages=[
                 {"role": "system", "content": "You are an emoji expert for social media content."},
                 {"role": "user", "content": prompt}
@@ -163,8 +163,8 @@ Format your response as JSON:
   "suggestions": ["suggestion 1", "suggestion 2", "suggestion 3"]
 }}"""
 
-        response = openai.chat.completions.create(
-            model="gpt-4o-mini",
+        response = groq_client.chat.completions.create(
+            model="llama-3.1-70b-versatile",
             messages=[
                 {"role": "system", "content": "You are a social media analytics expert. Always respond in valid JSON format."},
                 {"role": "user", "content": prompt}
@@ -274,8 +274,8 @@ Format as JSON:
   "improvements": ["improvement 1", "improvement 2", "improvement 3"]
 }}"""
 
-        response = openai.chat.completions.create(
-            model="gpt-4o-mini",
+        response = groq_client.chat.completions.create(
+            model="llama-3.1-70b-versatile",
             messages=[
                 {"role": "system", "content": f"You are a social media copywriting expert. Always write in {request.language} and respond in valid JSON format."},
                 {"role": "user", "content": prompt}
