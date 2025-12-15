@@ -15,7 +15,13 @@ app = FastAPI(
 # CORS pour permettre les requêtes depuis le frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # En production, spécifie les domaines autorisés
+    allow_origins=[
+        "http://localhost:5173",  # Développement local
+        "http://127.0.0.1:5173",  # Développement local
+        "https://ai-content-polisher-frontend.vercel.app",  # Production Vercel
+        "https://aicontentpolisher.com",  # Domaine personnalisé (futur)
+        "https://www.aicontentpolisher.com",  # Domaine personnalisé avec www
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
