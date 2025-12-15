@@ -94,6 +94,26 @@ PLAN_MAPPING = {
     'agency': 'business'    # Ancien "agency" devient "business"
 }
 
+# Limites des plans (pour Stripe)
+PLAN_LIMITS = {
+    'free': {
+        'credits': 5,
+        'max_requests_per_day': 5
+    },
+    'standard': {
+        'credits': 40,
+        'max_requests_per_day': 40
+    },
+    'premium': {
+        'credits': 150,
+        'max_requests_per_day': 150
+    },
+    'agency': {
+        'credits': 500,
+        'max_requests_per_day': 500
+    }
+}
+
 def get_plan_config(plan_name: str) -> dict:
     """Récupère la configuration d'un plan"""
     # Mapper les anciens noms si nécessaire
