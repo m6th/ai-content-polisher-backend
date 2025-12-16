@@ -85,7 +85,7 @@ Requirements:
 Hashtags:"""
 
         response = groq_client.chat.completions.create(
-            model="llama-3.1-70b-versatile",
+            model="llama-3.3-70b-versatile",
             messages=[
                 {"role": "system", "content": "You are a social media expert specializing in hashtag strategy."},
                 {"role": "user", "content": prompt}
@@ -122,7 +122,7 @@ Content: {request.content[:300]}
 Return ONLY the emojis, separated by spaces, no explanations."""
 
         response = groq_client.chat.completions.create(
-            model="llama-3.1-70b-versatile",
+            model="llama-3.3-70b-versatile",
             messages=[
                 {"role": "system", "content": "You are an emoji expert for social media content."},
                 {"role": "user", "content": prompt}
@@ -164,7 +164,7 @@ Format your response as JSON:
 }}"""
 
         response = groq_client.chat.completions.create(
-            model="llama-3.1-70b-versatile",
+            model="llama-3.3-70b-versatile",
             messages=[
                 {"role": "system", "content": "You are a social media analytics expert. Always respond in valid JSON format."},
                 {"role": "user", "content": prompt}
@@ -275,7 +275,7 @@ Format as JSON:
 }}"""
 
         response = groq_client.chat.completions.create(
-            model="llama-3.1-70b-versatile",
+            model="llama-3.3-70b-versatile",
             messages=[
                 {"role": "system", "content": f"You are a social media copywriting expert. Always write in {request.language} and respond in valid JSON format."},
                 {"role": "user", "content": prompt}
