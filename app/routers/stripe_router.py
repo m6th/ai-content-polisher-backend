@@ -235,7 +235,7 @@ async def handle_checkout_completed(session, db: Session):
         user.subscription_status = "active"
 
         # Reset credits based on plan
-        user.credits_remaining = PLAN_LIMITS[plan]["max_requests"]
+        user.credits_remaining = PLAN_LIMITS[plan]["credits"]
         user.last_credit_renewal = datetime.utcnow()
 
         db.commit()
