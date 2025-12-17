@@ -50,6 +50,13 @@ class SubscriptionInfo(BaseModel):
     cancel_at_period_end: bool
     stripe_customer_id: Optional[str]
 
+class PaymentIntentRequest(BaseModel):
+    plan: str  # starter, pro, business
+
+class PaymentIntentResponse(BaseModel):
+    client_secret: str
+    publishable_key: str
+
 
 @router.post("/create-checkout-session", response_model=CheckoutSessionResponse)
 async def create_checkout_session(
@@ -122,6 +129,72 @@ async def create_checkout_session(
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Erreur lors de la création de la session: {str(e)}")
+
+
+@router.post("/create-payment-intent", response_model=PaymentIntentResponse)
+async def create_payment_intent(
+    request: PaymentIntentRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Create a Stripe Payment Intent for embedded checkout with Payment Element"""
+    try:
+        print(f"🔍 Creating payment intent for plan: {request.plan}")
+
+        # Validate plan
+        if request.plan not in STRIPE_PRICE_IDS:
+            raise HTTPException(status_code=400, detail=f"Plan invalide: {request.plan}")
+
+        # Get or create Stripe customer
+        customer_id = current_user.stripe_customer_id
+        if not customer_id:
+            customer = stripe.Customer.create(
+                email=current_user.email,
+                name=current_user.name,
+                metadata={"user_id": current_user.id}
+            )
+            customer_id = customer.id
+            current_user.stripe_customer_id = customer_id
+            db.commit()
+
+        # Get price details to determine amount
+        price_id = STRIPE_PRICE_IDS[request.plan]
+        price = stripe.Price.retrieve(price_id)
+
+        # Create subscription with payment intent
+        subscription = stripe.Subscription.create(
+            customer=customer_id,
+            items=[{"price": price_id}],
+            payment_behavior="default_incomplete",
+            payment_settings={"save_default_payment_method": "on_subscription"},
+            expand=["latest_invoice.payment_intent"],
+            metadata={
+                "user_id": current_user.id,
+                "plan": request.plan
+            }
+        )
+
+        # Get client secret from payment intent
+        payment_intent = subscription.latest_invoice.payment_intent
+        client_secret = payment_intent.client_secret
+
+        # Store subscription ID temporarily
+        current_user.stripe_subscription_id = subscription.id
+        db.commit()
+
+        return PaymentIntentResponse(
+            client_secret=client_secret,
+            publishable_key=os.getenv("STRIPE_PUBLISHABLE_KEY", "")
+        )
+
+    except stripe.error.StripeError as e:
+        print(f"❌ Stripe error: {str(e)}")
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        print(f"❌ General error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Erreur lors de la création du payment intent: {str(e)}")
 
 
 @router.post("/create-portal-session", response_model=PortalSessionResponse)
