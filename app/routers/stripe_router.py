@@ -182,9 +182,18 @@ async def create_payment_intent(
         current_user.stripe_subscription_id = subscription.id
         db.commit()
 
+        # Get publishable key
+        publishable_key = os.getenv("STRIPE_PUBLISHABLE_KEY")
+        if not publishable_key:
+            raise Exception("STRIPE_PUBLISHABLE_KEY not configured in environment variables")
+
+        print(f"✅ Payment intent created successfully")
+        print(f"✅ Client secret: {client_secret[:20]}...")
+        print(f"✅ Publishable key: {publishable_key[:20]}...")
+
         return PaymentIntentResponse(
             client_secret=client_secret,
-            publishable_key=os.getenv("STRIPE_PUBLISHABLE_KEY", "")
+            publishable_key=publishable_key
         )
 
     except stripe.error.StripeError as e:
