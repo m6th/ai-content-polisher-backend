@@ -364,17 +364,28 @@ FORMAT_MAX_TOKENS = {
     "dramatic": 650
 }
 
-def polish_content_multi_format(original_text: str, tone: str = "professional", language: str = "fr") -> dict:
+def polish_content_multi_format(original_text: str, tone: str = "professional", language: str = "fr", user_plan: str = "free") -> dict:
     """
-    Génère TOUS les formats en une seule fois avec prompts optimisés
+    Génère les formats selon le plan de l'utilisateur avec prompts optimisés
     """
+    import time
+
     results = {}
     total_tokens = 0
 
     language_name = LANGUAGE_NAMES.get(language, "français")
     tone_modifier = TONE_MODIFIERS.get(tone, TONE_MODIFIERS["professional"])
 
-    for format_key, format_prompt in FORMAT_PROMPTS.items():
+    # Limiter les formats pour le plan free
+    if user_plan == "free":
+        allowed_formats = ["linkedin", "tiktok", "email", "humorous", "instagram_story"]
+        formats_to_generate = {k: v for k, v in FORMAT_PROMPTS.items() if k in allowed_formats}
+        delay_ms = 0  # Pas de délai pour free (seulement 5 formats)
+    else:
+        formats_to_generate = FORMAT_PROMPTS
+        delay_ms = 100  # 100ms de délai entre chaque requête pour les plans payants
+
+    for format_key, format_prompt in formats_to_generate.items():
         try:
             # Système de prompt en deux parties pour meilleure qualité
             system_message = f"""Tu es un expert de niveau mondial en création de contenu digital et copywriting.
@@ -416,6 +427,10 @@ RÈGLES CRITIQUES:
             polished_text = clean_generated_content(polished_text)
 
             results[format_key] = polished_text
+
+            # Ajouter un délai entre les requêtes pour éviter les rate limits
+            if delay_ms > 0:
+                time.sleep(delay_ms / 1000.0)  # Convertir ms en secondes
 
         except Exception as e:
             print(f"❌ Erreur pour {format_key}: {e}")

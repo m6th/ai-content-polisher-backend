@@ -17,12 +17,13 @@ def polish_content(
     
     content_request = crud.create_content_request(db, request, current_user.id)
     
-    # 🚀 GÉNÈRE TOUS LES FORMATS EN UNE FOIS
+    # 🚀 GÉNÈRE LES FORMATS SELON LE PLAN
     from app.ai_service import polish_content_multi_format
     all_formats, tokens_used = polish_content_multi_format(
         request.original_text,
         request.tone,
-        request.language
+        request.language,
+        current_user.current_plan
     )
     
     # Sauvegarde tous les formats

@@ -6,7 +6,7 @@ PLAN_CONFIG = {
     'free': {
         'name': 'Gratuit',
         'price': 0,
-        'credits': 5,
+        'credits': 3,
         'platforms': ['linkedin', 'instagram', 'tiktok'],  # 3 plateformes seulement
         'tones': ['professional', 'casual', 'engaging'],  # 3 tons seulement
         'languages': ['fr', 'en', 'es'],
@@ -97,8 +97,8 @@ PLAN_MAPPING = {
 # Limites des plans (pour Stripe)
 PLAN_LIMITS = {
     'free': {
-        'credits': 5,
-        'max_requests_per_day': 5
+        'credits': 3,
+        'max_requests_per_day': 3
     },
     'standard': {
         'credits': 40,
