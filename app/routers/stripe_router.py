@@ -18,9 +18,13 @@ STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET")
 
 # Plan to Stripe Price ID mapping (you'll need to create these in Stripe Dashboard)
 STRIPE_PRICE_IDS = {
-    "standard": os.getenv("STRIPE_PRICE_STANDARD", "price_standard"),  # 9.99€/mois
-    "premium": os.getenv("STRIPE_PRICE_PREMIUM", "price_premium"),    # 29.99€/mois
-    "agency": os.getenv("STRIPE_PRICE_AGENCY", "price_agency")       # 99.99€/mois
+    "starter": os.getenv("STRIPE_PRICE_STARTER", "price_starter"),    # 7.99€/mois
+    "pro": os.getenv("STRIPE_PRICE_PRO", "price_pro"),                # 17.99€/mois
+    "business": os.getenv("STRIPE_PRICE_BUSINESS", "price_business"), # 44.99€/mois
+    # Anciens noms pour compatibilité
+    "standard": os.getenv("STRIPE_PRICE_STARTER", "price_starter"),
+    "premium": os.getenv("STRIPE_PRICE_PRO", "price_pro"),
+    "agency": os.getenv("STRIPE_PRICE_BUSINESS", "price_business")
 }
 
 # Pydantic models

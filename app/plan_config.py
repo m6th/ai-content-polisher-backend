@@ -100,6 +100,19 @@ PLAN_LIMITS = {
         'credits': 3,
         'max_requests_per_day': 3
     },
+    'starter': {
+        'credits': 40,
+        'max_requests_per_day': 40
+    },
+    'pro': {
+        'credits': 150,
+        'max_requests_per_day': 150
+    },
+    'business': {
+        'credits': 500,
+        'max_requests_per_day': 500
+    },
+    # Anciens noms pour compatibilité avec les anciens abonnements
     'standard': {
         'credits': 40,
         'max_requests_per_day': 40
