@@ -59,9 +59,14 @@ async def create_checkout_session(
 ):
     """Create a Stripe Checkout session for subscription"""
     try:
+        print(f"🔍 Creating checkout session for plan: {request.plan}")
+        print(f"🔍 Available plans: {list(STRIPE_PRICE_IDS.keys())}")
+        print(f"🔍 Price ID for {request.plan}: {STRIPE_PRICE_IDS.get(request.plan)}")
+
         # Validate plan
         if request.plan not in STRIPE_PRICE_IDS:
-            raise HTTPException(status_code=400, detail="Plan invalide")
+            print(f"❌ Invalid plan: {request.plan}")
+            raise HTTPException(status_code=400, detail=f"Plan invalide: {request.plan}. Plans disponibles: {list(STRIPE_PRICE_IDS.keys())}")
 
         # Check if user already has a Stripe customer ID
         customer_id = current_user.stripe_customer_id
@@ -110,8 +115,12 @@ async def create_checkout_session(
         )
 
     except stripe.error.StripeError as e:
+        print(f"❌ Stripe error: {str(e)}")
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
+        print(f"❌ General error: {str(e)}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Erreur lors de la création de la session: {str(e)}")
 
 
