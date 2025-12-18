@@ -45,22 +45,24 @@ PLAN_CONFIG = {
     },
     'pro': {
         'name': 'Pro',
-        'price': 17.99,
-        'credits': 150,
+        'price': 19.99,
+        'credits': 200,  # Augmenté de 150 à 200
         'platforms': ['linkedin', 'instagram', 'tiktok', 'twitter', 'email', 'persuasive'],  # Tous les 6 formats
         'tones': ['professional', 'engaging', 'storytelling'],  # 3 tons
         'languages': ['fr', 'en', 'es'],
         'history_days': None,
         'features': {
             'export': True,
-            'analytics': True,
-            'variants': 3,  # 3 variantes
-            'hashtags': True,
+            'analytics': True,  # Analytics détaillés
+            'variants': 3,  # 3 variantes pour A/B testing
+            'hashtags': True,  # Hashtags AI intelligents
             'multi_users': 2,
             'support': 'email_24h',
             'api_access': False,
             'custom_tones': False,
-            'bulk_export': False
+            'bulk_export': True,  # Export en masse activé
+            'ai_suggestions': True,  # Suggestions d'amélioration IA
+            'content_calendar': True  # Planification de contenu
         }
     },
     'business': {
@@ -105,8 +107,8 @@ PLAN_LIMITS = {
         'max_requests_per_day': 40
     },
     'pro': {
-        'credits': 150,
-        'max_requests_per_day': 150
+        'credits': 200,
+        'max_requests_per_day': 200
     },
     'business': {
         'credits': 500,
@@ -118,8 +120,8 @@ PLAN_LIMITS = {
         'max_requests_per_day': 40
     },
     'premium': {
-        'credits': 150,
-        'max_requests_per_day': 150
+        'credits': 200,
+        'max_requests_per_day': 200
     },
     'agency': {
         'credits': 500,
