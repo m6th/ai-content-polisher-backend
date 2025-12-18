@@ -8,7 +8,7 @@ PLAN_CONFIG = {
         'price': 0,
         'credits': 3,
         'platforms': ['linkedin', 'instagram', 'tiktok'],  # 3 formats seulement
-        'tones': ['professional', 'casual', 'engaging', 'storytelling'],  # 4 tons
+        'tones': ['professional', 'engaging', 'storytelling'],  # 3 tons
         'languages': ['fr', 'en', 'es'],
         'history_days': 7,  # Historique limité à 7 jours
         'features': {
@@ -28,7 +28,7 @@ PLAN_CONFIG = {
         'price': 7.99,
         'credits': 40,
         'platforms': ['linkedin', 'instagram', 'tiktok', 'twitter', 'email', 'persuasive'],  # Tous les 6 formats
-        'tones': ['professional', 'casual', 'engaging', 'storytelling'],  # 4 tons
+        'tones': ['professional', 'engaging', 'storytelling'],  # 3 tons
         'languages': ['fr', 'en', 'es'],
         'history_days': None,  # Historique complet (illimité)
         'features': {
@@ -48,7 +48,7 @@ PLAN_CONFIG = {
         'price': 17.99,
         'credits': 150,
         'platforms': ['linkedin', 'instagram', 'tiktok', 'twitter', 'email', 'persuasive'],  # Tous les 6 formats
-        'tones': ['professional', 'casual', 'engaging', 'storytelling'],  # 4 tons
+        'tones': ['professional', 'engaging', 'storytelling'],  # 3 tons
         'languages': ['fr', 'en', 'es'],
         'history_days': None,
         'features': {
@@ -68,7 +68,7 @@ PLAN_CONFIG = {
         'price': 44.99,
         'credits': 500,
         'platforms': ['linkedin', 'instagram', 'tiktok', 'twitter', 'email', 'persuasive'],  # Tous les 6 formats
-        'tones': ['professional', 'casual', 'engaging', 'storytelling'],  # 4 tons
+        'tones': ['professional', 'engaging', 'storytelling'],  # 3 tons
         'languages': ['fr', 'en', 'es'],
         'history_days': None,
         'features': {
