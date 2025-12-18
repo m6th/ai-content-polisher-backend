@@ -145,14 +145,20 @@ FORMAT_MAX_TOKENS = {
 def polish_content_multi_format(original_text: str, tone: str = "professional", language: str = "fr", user_plan: str = "free") -> dict:
     """
     Génère les formats selon le plan de l'utilisateur avec prompts optimisés
+    Génère 3 variantes pour les plans Pro et Business
     """
     import time
+    from .plan_config import get_plan_config
 
     results = {}
     total_tokens = 0
 
     language_name = LANGUAGE_NAMES.get(language, "français")
     tone_modifier = TONE_MODIFIERS.get(tone, TONE_MODIFIERS["professional"])
+
+    # Récupère le nombre de variantes selon le plan
+    plan_config = get_plan_config(user_plan)
+    num_variants = plan_config.get('features', {}).get('variants', 1)
 
     # Limiter les formats pour le plan free (3 formats seulement)
     if user_plan == "free":
@@ -165,11 +171,24 @@ def polish_content_multi_format(original_text: str, tone: str = "professional", 
         delay_ms = 100  # 100ms de délai entre chaque requête pour les plans payants
 
     for format_key, format_prompt in formats_to_generate.items():
-        try:
-            # Système de prompt en deux parties pour meilleure qualité
-            system_message = f"""Tu es un expert de niveau mondial en création de contenu digital et copywriting.
+        # Générer plusieurs variantes pour Pro/Business
+        format_variants = []
 
-MISSION: {format_prompt}
+        for variant_num in range(num_variants):
+            try:
+                # Système de prompt en deux parties pour meilleure qualité
+                variant_instruction = ""
+                if num_variants > 1:
+                    if variant_num == 0:
+                        variant_instruction = "\n\n🎯 VARIANTE 1: Version équilibrée et polyvalente."
+                    elif variant_num == 1:
+                        variant_instruction = "\n\n🎯 VARIANTE 2: Version plus audacieuse et créative avec un angle différent."
+                    elif variant_num == 2:
+                        variant_instruction = "\n\n🎯 VARIANTE 3: Version alternative avec une approche unique et originale."
+
+                system_message = f"""Tu es un expert de niveau mondial en création de contenu digital et copywriting.
+
+MISSION: {format_prompt}{variant_instruction}
 
 TON À ADOPTER: {tone_modifier}
 
@@ -183,37 +202,43 @@ RÈGLES CRITIQUES:
 ✓ Optimise pour l'engagement et la viralité
 ✓ Sois authentique et humain dans le ton"""
 
-            # Max tokens adapté au format
-            max_tokens = FORMAT_MAX_TOKENS.get(format_key, 600)
+                # Max tokens adapté au format
+                max_tokens = FORMAT_MAX_TOKENS.get(format_key, 600)
 
-            response = client.chat.completions.create(
-                model="llama-3.3-70b-versatile",
-                messages=[
-                    {"role": "system", "content": system_message},
-                    {"role": "user", "content": f"Contenu à transformer:\n\n{original_text}"}
-                ],
-                temperature=0.8,  # Augmenté pour plus de créativité
-                max_tokens=max_tokens,
-                top_p=0.95,  # Pour diversité contrôlée
-                presence_penalty=0.1,  # Évite les répétitions
-                frequency_penalty=0.1  # Encourage la variété
-            )
+                # Température variable pour plus de diversité entre variantes
+                temperature = 0.8 + (variant_num * 0.1)  # 0.8, 0.9, 1.0
 
-            polished_text = response.choices[0].message.content.strip()
-            total_tokens += response.usage.total_tokens
+                response = client.chat.completions.create(
+                    model="llama-3.3-70b-versatile",
+                    messages=[
+                        {"role": "system", "content": system_message},
+                        {"role": "user", "content": f"Contenu à transformer:\n\n{original_text}"}
+                    ],
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                    top_p=0.95,
+                    presence_penalty=0.1,
+                    frequency_penalty=0.1
+                )
 
-            # Post-traitement: nettoie les artefacts potentiels
-            polished_text = clean_generated_content(polished_text)
+                polished_text = response.choices[0].message.content.strip()
+                total_tokens += response.usage.total_tokens
 
-            results[format_key] = polished_text
+                # Post-traitement: nettoie les artefacts potentiels
+                polished_text = clean_generated_content(polished_text)
 
-            # Ajouter un délai entre les requêtes pour éviter les rate limits
-            if delay_ms > 0:
-                time.sleep(delay_ms / 1000.0)  # Convertir ms en secondes
+                format_variants.append(polished_text)
 
-        except Exception as e:
-            print(f"❌ Erreur pour {format_key}: {e}")
-            results[format_key] = f"[Erreur lors de la génération du format {format_key}. Veuillez réessayer.]"
+                # Ajouter un délai entre les requêtes pour éviter les rate limits
+                if delay_ms > 0:
+                    time.sleep(delay_ms / 1000.0)
+
+            except Exception as e:
+                print(f"❌ Erreur pour {format_key} variante {variant_num + 1}: {e}")
+                format_variants.append(f"[Erreur lors de la génération de la variante {variant_num + 1}. Veuillez réessayer.]")
+
+        # Stocker les variantes (soit une seule, soit plusieurs)
+        results[format_key] = format_variants if num_variants > 1 else format_variants[0]
 
     return results, total_tokens
 

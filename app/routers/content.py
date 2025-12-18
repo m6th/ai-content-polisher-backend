@@ -26,21 +26,44 @@ def polish_content(
         current_user.current_plan
     )
     
-    # Sauvegarde tous les formats
+    # Sauvegarde tous les formats avec leurs variantes
     generated_contents = []
-    for idx, (format_name, content_text) in enumerate(all_formats.items(), 1):
-        generated = crud.create_generated_content(
-            db,
-            content_request.id,
-            content_text,
-            variant_number=idx
-        )
-        generated_contents.append({
-            "id": generated.id,
-            "format": format_name,
-            "content": content_text,
-            "created_at": generated.created_at
-        })
+    variant_counter = 1
+
+    for format_name, content_data in all_formats.items():
+        # Si content_data est une liste (plusieurs variantes), traiter chacune
+        if isinstance(content_data, list):
+            for variant_idx, content_text in enumerate(content_data, 1):
+                generated = crud.create_generated_content(
+                    db,
+                    content_request.id,
+                    content_text,
+                    variant_number=variant_counter
+                )
+                generated_contents.append({
+                    "id": generated.id,
+                    "format": format_name,
+                    "variant": variant_idx,
+                    "content": content_text,
+                    "created_at": generated.created_at
+                })
+                variant_counter += 1
+        else:
+            # Une seule variante (plans Free/Starter)
+            generated = crud.create_generated_content(
+                db,
+                content_request.id,
+                content_data,
+                variant_number=variant_counter
+            )
+            generated_contents.append({
+                "id": generated.id,
+                "format": format_name,
+                "variant": 1,
+                "content": content_data,
+                "created_at": generated.created_at
+            })
+            variant_counter += 1
     
     crud.decrease_user_credits(db, current_user.id)
     crud.create_usage_analytics(db, current_user.id, tokens_used, None)
