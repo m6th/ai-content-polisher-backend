@@ -97,3 +97,36 @@ class ScheduledContent(Base):
     notes = Column(Text, nullable=True)  # Optional notes
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class Team(Base):
+    __tablename__ = "teams"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False)
+    owner_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    plan = Column(String, nullable=False)  # pro, business
+    max_members = Column(Integer, default=2)  # 2 for Pro, 5 for Business
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class TeamMember(Base):
+    __tablename__ = "team_members"
+
+    id = Column(Integer, primary_key=True, index=True)
+    team_id = Column(Integer, ForeignKey("teams.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    role = Column(String, default="member")  # owner, admin, member
+    status = Column(String, default="active")  # active, pending, removed
+    joined_at = Column(DateTime, default=datetime.utcnow)
+
+class TeamInvitation(Base):
+    __tablename__ = "team_invitations"
+
+    id = Column(Integer, primary_key=True, index=True)
+    team_id = Column(Integer, ForeignKey("teams.id"), nullable=False)
+    email = Column(String, nullable=False)
+    invited_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    token = Column(String, unique=True, nullable=False)
+    status = Column(String, default="pending")  # pending, accepted, expired
+    created_at = Column(DateTime, default=datetime.utcnow)
+    expires_at = Column(DateTime, nullable=False)
