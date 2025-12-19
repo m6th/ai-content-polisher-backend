@@ -275,6 +275,75 @@ def clean_generated_content(text: str) -> str:
 
     return text.strip()
 
+def generate_ai_suggestions(content: str, language: str = "fr") -> dict:
+    """
+    Génère des suggestions d'amélioration IA pour le contenu
+    Analyse le contenu et propose des améliorations concrètes
+    """
+    try:
+        language_name = LANGUAGE_NAMES.get(language, "français")
+
+        system_message = f"""Tu es un expert en optimisation de contenu et copywriting.
+
+MISSION: Analyse ce contenu et génère des suggestions d'amélioration concrètes.
+
+ANALYSE À FAIRE:
+1. Score d'engagement potentiel (0-100)
+2. Points forts du contenu (2-3 éléments)
+3. Axes d'amélioration (3-4 suggestions actionnables)
+4. Mots-clés SEO recommandés (5-7 mots-clés)
+5. Émojis suggérés pour plus d'impact (3-5 émojis)
+
+LANGUE: Analyse et réponds en {language_name}.
+
+FORMAT DE RÉPONSE (JSON strict):
+{{
+  "engagement_score": 75,
+  "strengths": ["Point fort 1", "Point fort 2"],
+  "improvements": ["Amélioration 1", "Amélioration 2", "Amélioration 3"],
+  "keywords": ["mot1", "mot2", "mot3"],
+  "suggested_emojis": ["💡", "🚀", "✨"]
+}}
+
+Réponds UNIQUEMENT avec le JSON, sans texte supplémentaire."""
+
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {"role": "system", "content": system_message},
+                {"role": "user", "content": f"Contenu à analyser:\n\n{content[:800]}"}
+            ],
+            temperature=0.5,
+            max_tokens=400
+        )
+
+        import json
+        suggestions_text = response.choices[0].message.content.strip()
+
+        # Parse le JSON
+        try:
+            suggestions = json.loads(suggestions_text)
+            return suggestions
+        except json.JSONDecodeError:
+            # Fallback si le JSON est malformé
+            return {
+                "engagement_score": 50,
+                "strengths": ["Contenu structuré"],
+                "improvements": ["Ajouter plus d'émojis", "Renforcer le call-to-action"],
+                "keywords": ["contenu", "digital", "marketing"],
+                "suggested_emojis": ["💡", "🚀"]
+            }
+
+    except Exception as e:
+        print(f"❌ Erreur génération suggestions: {e}")
+        return {
+            "engagement_score": 0,
+            "strengths": [],
+            "improvements": [],
+            "keywords": [],
+            "suggested_emojis": []
+        }
+
 def generate_hashtags(content: str, language: str = "fr", count: int = 10) -> list:
     """
     Génère des hashtags pertinents et stratégiques pour le contenu

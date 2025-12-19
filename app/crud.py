@@ -63,10 +63,11 @@ def create_content_request(db: Session, request: schemas.ContentRequestCreate, u
     db.refresh(db_request)
     return db_request
 
-def create_generated_content(db: Session, request_id: int, polished_text: str, variant_number: int = 1):
+def create_generated_content(db: Session, request_id: int, polished_text: str, variant_number: int = 1, format_name: str = None):
     db_content = models.GeneratedContent(
         request_id=request_id,
         polished_text=polished_text,
+        format_name=format_name,
         variant_number=variant_number
     )
     db.add(db_content)

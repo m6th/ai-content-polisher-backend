@@ -62,13 +62,14 @@ class ContentRequest(Base):
 
 class GeneratedContent(Base):
     __tablename__ = "generated_contents"
-    
+
     id = Column(Integer, primary_key=True, index=True)
     request_id = Column(Integer, ForeignKey("content_requests.id"), nullable=False)
     polished_text = Column(Text, nullable=False)
+    format_name = Column(String, nullable=True)  # linkedin, instagram, tiktok, etc.
     variant_number = Column(Integer, default=1)
     created_at = Column(DateTime, default=datetime.utcnow)
-    
+
     request = relationship("ContentRequest", back_populates="generated_contents")
 
 class UsageAnalytics(Base):
