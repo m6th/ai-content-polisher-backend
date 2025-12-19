@@ -7,8 +7,19 @@ from app.auth import get_current_user
 from app.plan_config import get_plan_credits, PLAN_CONFIG
 from datetime import datetime, timedelta
 from typing import List, Dict
+from pydantic import BaseModel
 
 router = APIRouter(prefix="/admin", tags=["admin"])
+
+# Pydantic models for request bodies
+class UpdateCreditsRequest(BaseModel):
+    credits: int
+
+class UpdatePlanRequest(BaseModel):
+    plan: str
+
+class ToggleAdminRequest(BaseModel):
+    is_admin: bool
 
 def verify_admin(current_user: User = Depends(get_current_user)):
     """Vérifie que l'utilisateur actuel est un admin"""
@@ -152,7 +163,7 @@ def get_user_details(
 @router.put("/users/{user_id}/credits")
 def update_user_credits(
     user_id: int,
-    credits: int,
+    request: UpdateCreditsRequest,
     db: Session = Depends(get_db),
     admin: User = Depends(verify_admin)
 ):
@@ -162,42 +173,42 @@ def update_user_credits(
     if not user:
         raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
 
-    user.credits_remaining = credits
+    user.credits_remaining = request.credits
     db.commit()
 
-    return {"message": "Crédits mis à jour", "new_credits": credits}
+    return {"message": "Crédits mis à jour", "new_credits": request.credits}
 
 @router.put("/users/{user_id}/plan")
 def update_user_plan(
     user_id: int,
-    plan: str,
+    request: UpdatePlanRequest,
     db: Session = Depends(get_db),
     admin: User = Depends(verify_admin)
 ):
     """Modifier le plan d'un utilisateur"""
 
     valid_plans = list(PLAN_CONFIG.keys())
-    if plan not in valid_plans:
+    if request.plan not in valid_plans:
         raise HTTPException(status_code=400, detail="Plan invalide")
 
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
 
-    user.current_plan = plan
+    user.current_plan = request.plan
     user.plan_started_at = datetime.utcnow()
 
     # Mettre à jour les crédits selon le plan
-    user.credits_remaining = get_plan_credits(plan)
+    user.credits_remaining = get_plan_credits(request.plan)
 
     db.commit()
 
-    return {"message": "Plan mis à jour", "new_plan": plan, "new_credits": user.credits_remaining}
+    return {"message": "Plan mis à jour", "new_plan": request.plan, "new_credits": user.credits_remaining}
 
 @router.put("/users/{user_id}/admin")
 def toggle_admin_status(
     user_id: int,
-    is_admin: bool,
+    request: ToggleAdminRequest,
     db: Session = Depends(get_db),
     admin: User = Depends(verify_admin)
 ):
@@ -207,7 +218,7 @@ def toggle_admin_status(
     if not user:
         raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
 
-    user.is_admin = 1 if is_admin else 0
+    user.is_admin = 1 if request.is_admin else 0
     db.commit()
 
     return {"message": "Statut admin mis à jour", "is_admin": user.is_admin}
