@@ -74,11 +74,26 @@ class GeneratedContent(Base):
 
 class UsageAnalytics(Base):
     __tablename__ = "usage_analytics"
-    
+
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     tokens_used = Column(Integer)
     request_date = Column(DateTime, default=datetime.utcnow)
     platform = Column(Enum(Platform))
-    
+
     user = relationship("User", back_populates="usage_analytics")
+
+class ScheduledContent(Base):
+    __tablename__ = "scheduled_contents"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    content_request_id = Column(Integer, ForeignKey("content_requests.id"), nullable=True)
+    generated_content_id = Column(Integer, ForeignKey("generated_contents.id"), nullable=True)
+    scheduled_date = Column(DateTime, nullable=False)
+    platform = Column(String, nullable=False)  # linkedin, instagram, etc.
+    status = Column(String, default="scheduled")  # scheduled, published, cancelled
+    title = Column(String, nullable=True)  # Optional title for the calendar entry
+    notes = Column(Text, nullable=True)  # Optional notes
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
