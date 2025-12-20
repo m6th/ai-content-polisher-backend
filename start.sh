@@ -141,8 +141,50 @@ elif [ -z "$CURRENT" ]; then
     exec "$0"
 else
     echo "ℹ️  Current version: $CURRENT"
-    echo "🔄 Applying pending migrations..."
-    alembic upgrade head
+
+    # If we're at head but format_name is missing, add it manually
+    if [ "$CURRENT" == "h4i5j6k7l8m9" ]; then
+        echo "🔍 At head, checking if format_name column exists..."
+        FORMAT_COL_EXISTS=$(python3 << 'PYEOF'
+import os
+import sys
+try:
+    from sqlalchemy import create_engine, text
+    engine = create_engine(os.getenv('DATABASE_URL'))
+    with engine.connect() as conn:
+        result = conn.execute(text("""
+            SELECT EXISTS (
+                SELECT FROM information_schema.columns
+                WHERE table_name = 'generated_contents'
+                AND column_name = 'format_name'
+            )
+        """))
+        exists = result.scalar()
+        print('true' if exists else 'false')
+except Exception as e:
+    print('false', file=sys.stderr)
+    print('false')
+PYEOF
+)
+
+        if [ "$FORMAT_COL_EXISTS" == "true" ]; then
+            echo "✓ format_name column exists"
+        else
+            echo "⚠️  format_name column missing, adding it manually..."
+            python3 << 'PYEOF'
+import os
+from sqlalchemy import create_engine, text
+engine = create_engine(os.getenv('DATABASE_URL'))
+with engine.connect() as conn:
+    conn.execute(text("ALTER TABLE generated_contents ADD COLUMN IF NOT EXISTS format_name VARCHAR"))
+    conn.commit()
+print("✓ Added format_name column")
+PYEOF
+        fi
+    else
+        echo "🔄 Applying pending migrations..."
+        alembic upgrade head
+    fi
 fi
 
 echo "✅ Migrations complete!"
