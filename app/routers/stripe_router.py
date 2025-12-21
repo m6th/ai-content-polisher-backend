@@ -270,21 +270,34 @@ async def stripe_webhook(
     db: Session = Depends(get_db)
 ):
     """Handle Stripe webhooks"""
+    print(f"🔔 Webhook received at {datetime.utcnow()}")
+
     try:
         # Get the raw body
         payload = await request.body()
+        print(f"📦 Payload size: {len(payload)} bytes")
+
+        # Check if webhook secret is configured
+        if not STRIPE_WEBHOOK_SECRET:
+            print("❌ STRIPE_WEBHOOK_SECRET not configured!")
+            return {"status": "error", "message": "Webhook secret not configured"}
 
         # Verify webhook signature
         try:
             event = stripe.Webhook.construct_event(
                 payload, stripe_signature, STRIPE_WEBHOOK_SECRET
             )
+            print(f"✅ Signature verified for event: {event.type}")
         except ValueError as e:
+            print(f"❌ Invalid payload: {e}")
             raise HTTPException(status_code=400, detail="Invalid payload")
         except stripe.error.SignatureVerificationError as e:
+            print(f"❌ Invalid signature: {e}")
             raise HTTPException(status_code=400, detail="Invalid signature")
 
         # Handle the event
+        print(f"🔄 Processing event type: {event.type}")
+
         if event.type == "checkout.session.completed":
             session = event.data.object
             await handle_checkout_completed(session, db)
@@ -308,12 +321,20 @@ async def stripe_webhook(
         elif event.type == "invoice.payment_failed":
             invoice = event.data.object
             await handle_invoice_failed(invoice, db)
+        else:
+            print(f"ℹ️  Unhandled event type: {event.type}")
 
+        print(f"✅ Webhook processed successfully: {event.type}")
         return {"status": "success"}
 
+    except HTTPException:
+        raise
     except Exception as e:
-        print(f"Webhook error: {e}")
-        raise HTTPException(status_code=400, detail=str(e))
+        print(f"❌ Webhook error: {e}")
+        import traceback
+        traceback.print_exc()
+        # Return 200 to prevent Stripe from retrying on temporary errors
+        return {"status": "error", "message": str(e)}
 
 
 # Helper functions for webhook handlers
