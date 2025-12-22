@@ -366,7 +366,10 @@ async def handle_subscription_created(subscription, db: Session):
     if user:
         user.stripe_subscription_id = subscription.id
         user.subscription_status = subscription.status
-        user.subscription_end_date = datetime.fromtimestamp(subscription.current_period_end)
+
+        # Safely get current_period_end if available
+        if hasattr(subscription, 'current_period_end') and subscription.current_period_end:
+            user.subscription_end_date = datetime.fromtimestamp(subscription.current_period_end)
 
         db.commit()
         print(f"Subscription created for user {user.id}")
@@ -379,10 +382,13 @@ async def handle_subscription_updated(subscription, db: Session):
     user = db.query(User).filter(User.stripe_customer_id == customer_id).first()
     if user:
         user.subscription_status = subscription.status
-        user.subscription_end_date = datetime.fromtimestamp(subscription.current_period_end)
+
+        # Safely get current_period_end if available
+        if hasattr(subscription, 'current_period_end') and subscription.current_period_end:
+            user.subscription_end_date = datetime.fromtimestamp(subscription.current_period_end)
 
         # If subscription is canceled, handle it
-        if subscription.cancel_at_period_end:
+        if hasattr(subscription, 'cancel_at_period_end') and subscription.cancel_at_period_end:
             print(f"Subscription will be canceled at period end for user {user.id}")
 
         db.commit()
