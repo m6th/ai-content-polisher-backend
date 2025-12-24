@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime, timedelta
@@ -246,7 +246,7 @@ def invite_member(
 
 @router.post("/accept-invitation")
 def accept_invitation(
-    token: str,
+    token: str = Query(...),
     current_user: models.User = Depends(auth.get_current_user),
     db: Session = Depends(get_db)
 ):
