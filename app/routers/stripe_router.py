@@ -206,6 +206,50 @@ async def create_payment_intent(
         raise HTTPException(status_code=500, detail=f"Erreur lors de la création du payment intent: {str(e)}")
 
 
+@router.post("/create-payment-intent-guest")
+async def create_payment_intent_guest(
+    request: PaymentIntentRequest,
+    email: str = Query(...),
+    db: Session = Depends(get_db)
+):
+    """Create Payment Intent for guest during registration flow"""
+    try:
+        print(f"🔍 Creating payment intent for guest: {email}, plan: {request.plan}")
+
+        if request.plan not in STRIPE_PRICE_IDS:
+            raise HTTPException(status_code=400, detail=f"Plan invalide: {request.plan}")
+
+        # Find or create Stripe customer
+        customers = stripe.Customer.list(email=email, limit=1)
+        if customers.data:
+            customer_id = customers.data[0].id
+        else:
+            customer = stripe.Customer.create(email=email, metadata={"email": email})
+            customer_id = customer.id
+
+        # Create subscription
+        price_id = STRIPE_PRICE_IDS[request.plan]
+        subscription = stripe.Subscription.create(
+            customer=customer_id,
+            items=[{"price": price_id}],
+            payment_behavior="default_incomplete",
+            payment_settings={"save_default_payment_method": "on_subscription"},
+            expand=["latest_invoice.payment_intent"],
+            metadata={"email": email, "plan": request.plan, "type": "guest_registration"}
+        )
+
+        payment_intent = subscription.latest_invoice.payment_intent
+        client_secret = payment_intent.client_secret
+        publishable_key = os.getenv("STRIPE_PUBLISHABLE_KEY")
+
+        print(f"✅ Guest payment intent created")
+        return PaymentIntentResponse(client_secret=client_secret, publishable_key=publishable_key)
+
+    except Exception as e:
+        print(f"❌ Error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.post("/create-portal-session", response_model=PortalSessionResponse)
 async def create_portal_session(
     request: PortalSessionRequest,
@@ -363,6 +407,15 @@ async def handle_subscription_created(subscription, db: Session):
     customer_id = subscription.customer
 
     user = db.query(User).filter(User.stripe_customer_id == customer_id).first()
+
+    # Si pas trouvé par customer_id, chercher par email (guest payment)
+    if not user and hasattr(subscription, 'metadata') and 'email' in subscription.metadata:
+        email = subscription.metadata['email']
+        user = db.query(User).filter(User.email == email).first()
+        if user:
+            user.stripe_customer_id = customer_id
+            print(f"Linked guest payment to user {user.id}")
+
     if user:
         user.stripe_subscription_id = subscription.id
         user.subscription_status = subscription.status
@@ -370,6 +423,18 @@ async def handle_subscription_created(subscription, db: Session):
         # Safely get current_period_end if available
         if hasattr(subscription, 'current_period_end') and subscription.current_period_end:
             user.subscription_end_date = datetime.fromtimestamp(subscription.current_period_end)
+
+        # UPDATE PLAN from metadata
+        if hasattr(subscription, 'metadata') and 'plan' in subscription.metadata:
+            plan = subscription.metadata['plan']
+            user.current_plan = plan
+            user.plan_started_at = datetime.utcnow()
+
+            from app.plan_config import PLAN_LIMITS
+            user.credits_remaining = PLAN_LIMITS.get(plan, {}).get('credits', 10)
+            user.last_credit_renewal = datetime.utcnow()
+
+            print(f"✅ Plan updated to {plan} for user {user.id}")
 
         db.commit()
         print(f"Subscription created for user {user.id}")
