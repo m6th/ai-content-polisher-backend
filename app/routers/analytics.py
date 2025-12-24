@@ -6,6 +6,7 @@ from app.database import get_db
 from app.auth import get_current_user
 from app.models import User, UsageAnalytics, ContentRequest, GeneratedContent
 from app.plan_config import get_plan_config, get_plan_credits
+from app.utils.team_utils import get_effective_plan
 from typing import Dict, List
 
 router = APIRouter(prefix="/analytics", tags=["analytics"])
@@ -17,8 +18,11 @@ def get_user_stats(
 ) -> Dict:
     """Récupère les statistiques globales de l'utilisateur (Pro/Business: statistiques détaillées)"""
 
+    # Get effective plan (considering team membership)
+    effective_plan = get_effective_plan(current_user, db)
+
     # Check if user has advanced analytics
-    plan_config = get_plan_config(current_user.current_plan)
+    plan_config = get_plan_config(effective_plan)
     analytics_enabled = plan_config.get('features', {}).get('analytics', False)
 
     # Total de requêtes
@@ -34,7 +38,7 @@ def get_user_stats(
     ).scalar() or 0
 
     # Récupère les crédits max depuis la configuration
-    max_credits = get_plan_credits(current_user.current_plan)
+    max_credits = get_plan_credits(effective_plan)
     usage_rate = (credits_used_this_month / max_credits * 100) if max_credits > 0 else 0
 
     base_stats = {
@@ -42,7 +46,7 @@ def get_user_stats(
         "credits_used_this_month": credits_used_this_month,
         "credits_remaining": current_user.credits_remaining,
         "usage_rate": round(usage_rate, 1),
-        "current_plan": current_user.current_plan,
+        "current_plan": effective_plan,
         "max_credits_per_month": max_credits,
         "analytics_enabled": analytics_enabled
     }
@@ -189,8 +193,11 @@ def get_format_analytics(
 ) -> Dict:
     """Analyse détaillée par format (Pro/Business uniquement)"""
 
+    # Get effective plan (considering team membership)
+    effective_plan = get_effective_plan(current_user, db)
+
     # Check if user has analytics feature
-    plan_config = get_plan_config(current_user.current_plan)
+    plan_config = get_plan_config(effective_plan)
     analytics_enabled = plan_config.get('features', {}).get('analytics', False)
 
     if not analytics_enabled:
@@ -275,8 +282,11 @@ def get_performance_summary(
 ) -> Dict:
     """Résumé des performances (Pro/Business uniquement)"""
 
+    # Get effective plan (considering team membership)
+    effective_plan = get_effective_plan(current_user, db)
+
     # Check if user has analytics feature
-    plan_config = get_plan_config(current_user.current_plan)
+    plan_config = get_plan_config(effective_plan)
     analytics_enabled = plan_config.get('features', {}).get('analytics', False)
 
     if not analytics_enabled:

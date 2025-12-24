@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 from app import crud, schemas, auth, models
 from app.database import get_db
+from app.utils.team_utils import get_effective_plan
 import io
 import zipfile
 from datetime import datetime
@@ -21,6 +22,9 @@ def polish_content(
 
     content_request = crud.create_content_request(db, request, current_user.id)
 
+    # Get effective plan (considering team membership)
+    effective_plan = get_effective_plan(current_user, db)
+
     # 🚀 GÉNÈRE LES FORMATS SELON LE PLAN
     from app.ai_service import polish_content_multi_format, generate_hashtags, generate_ai_suggestions
     from app.plan_config import get_plan_config
@@ -29,11 +33,11 @@ def polish_content(
         request.original_text,
         request.tone,
         request.language,
-        current_user.current_plan
+        effective_plan
     )
 
     # Récupère les features du plan
-    plan_config = get_plan_config(current_user.current_plan)
+    plan_config = get_plan_config(effective_plan)
     hashtags_enabled = plan_config.get('features', {}).get('hashtags', False)
     ai_suggestions_enabled = plan_config.get('features', {}).get('ai_suggestions', False)
 
@@ -236,8 +240,11 @@ def export_all_formats(
     """Export all generated formats as a ZIP file (Pro/Business only)"""
     from app.plan_config import get_plan_config
 
+    # Get effective plan (considering team membership)
+    effective_plan = get_effective_plan(current_user, db)
+
     # Check if user has bulk export feature
-    plan_config = get_plan_config(current_user.current_plan)
+    plan_config = get_plan_config(effective_plan)
     bulk_export_enabled = plan_config.get('features', {}).get('bulk_export', False)
 
     if not bulk_export_enabled:

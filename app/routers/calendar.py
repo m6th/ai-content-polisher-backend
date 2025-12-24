@@ -7,6 +7,7 @@ from pydantic import BaseModel
 from app import models, auth
 from app.database import get_db
 from app.plan_config import get_plan_config
+from app.utils.team_utils import get_effective_plan
 
 router = APIRouter(prefix="/calendar", tags=["calendar"])
 
@@ -34,8 +35,11 @@ def schedule_content(
 ):
     """Schedule content for publishing (Pro/Business only)"""
 
+    # Get effective plan (considering team membership)
+    effective_plan = get_effective_plan(current_user, db)
+
     # Check if user has calendar feature
-    plan_config = get_plan_config(current_user.current_plan)
+    plan_config = get_plan_config(effective_plan)
     calendar_enabled = plan_config.get('features', {}).get('content_calendar', False)
 
     if not calendar_enabled:
@@ -108,8 +112,11 @@ def get_calendar_view(
 ):
     """Get calendar view of scheduled content (Pro/Business only)"""
 
+    # Get effective plan (considering team membership)
+    effective_plan = get_effective_plan(current_user, db)
+
     # Check if user has calendar feature
-    plan_config = get_plan_config(current_user.current_plan)
+    plan_config = get_plan_config(effective_plan)
     calendar_enabled = plan_config.get('features', {}).get('content_calendar', False)
 
     if not calendar_enabled:
@@ -191,8 +198,11 @@ def update_scheduled_content(
 ):
     """Update scheduled content (Pro/Business only)"""
 
+    # Get effective plan (considering team membership)
+    effective_plan = get_effective_plan(current_user, db)
+
     # Check if user has calendar feature
-    plan_config = get_plan_config(current_user.current_plan)
+    plan_config = get_plan_config(effective_plan)
     calendar_enabled = plan_config.get('features', {}).get('content_calendar', False)
 
     if not calendar_enabled:
@@ -245,8 +255,11 @@ def delete_scheduled_content(
 ):
     """Delete scheduled content (Pro/Business only)"""
 
+    # Get effective plan (considering team membership)
+    effective_plan = get_effective_plan(current_user, db)
+
     # Check if user has calendar feature
-    plan_config = get_plan_config(current_user.current_plan)
+    plan_config = get_plan_config(effective_plan)
     calendar_enabled = plan_config.get('features', {}).get('content_calendar', False)
 
     if not calendar_enabled:
@@ -277,8 +290,11 @@ def get_upcoming_content(
 ):
     """Get upcoming scheduled content (Pro/Business only)"""
 
+    # Get effective plan (considering team membership)
+    effective_plan = get_effective_plan(current_user, db)
+
     # Check if user has calendar feature
-    plan_config = get_plan_config(current_user.current_plan)
+    plan_config = get_plan_config(effective_plan)
     calendar_enabled = plan_config.get('features', {}).get('content_calendar', False)
 
     if not calendar_enabled:
