@@ -3,6 +3,7 @@ from app import models, schemas
 from app.plan_config import get_plan_credits, PLAN_MAPPING
 from passlib.context import CryptContext
 import random
+import re
 from datetime import datetime, timedelta
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -10,6 +11,22 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 def generate_verification_code() -> str:
     """Génère un code de vérification à 6 chiffres"""
     return ''.join([str(random.randint(0, 9)) for _ in range(6)])
+
+def validate_password_strength(password: str) -> tuple[bool, str]:
+    """
+    Valide la force du mot de passe
+    Retourne (is_valid, error_message)
+    """
+    if len(password) < 8:
+        return False, "Le mot de passe doit contenir au moins 8 caractères"
+
+    if not re.search(r'[0-9]', password):
+        return False, "Le mot de passe doit contenir au moins 1 chiffre"
+
+    if not re.search(r'[a-zA-Z]', password):
+        return False, "Le mot de passe doit contenir au moins 1 lettre"
+
+    return True, ""
 
 # User CRUD
 def get_user_by_email(db: Session, email: str):
@@ -20,12 +37,9 @@ def create_user(db: Session, user: schemas.UserCreate):
     password_bytes = user.password.encode('utf-8')[:72]
     hashed_password = pwd_context.hash(password_bytes.decode('utf-8'))
 
-    # Mapper l'ancien nom de plan vers le nouveau si nécessaire
-    plan = PLAN_MAPPING.get(user.plan, user.plan) if user.plan else 'free'
-    if plan not in ['free', 'starter', 'pro', 'business']:
-        plan = 'free'
-
-    # Récupérer les crédits depuis la configuration
+    # IMPORTANT: Toujours créer avec le plan "free" lors de l'inscription
+    # Les plans payants seront activés uniquement après paiement via Stripe
+    plan = 'free'
     credits = get_plan_credits(plan)
 
     # Générer le code de vérification

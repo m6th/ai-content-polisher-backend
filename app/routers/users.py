@@ -18,6 +18,11 @@ def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
     if db_user:
         raise HTTPException(status_code=400, detail="Email déjà enregistré")
 
+    # Valider la force du mot de passe
+    is_valid, error_message = crud.validate_password_strength(user.password)
+    if not is_valid:
+        raise HTTPException(status_code=400, detail=error_message)
+
     # Créer l'utilisateur avec le code de vérification
     new_user = crud.create_user(db=db, user=user)
 
@@ -65,12 +70,9 @@ async def google_auth(auth_data: GoogleAuthRequest, db: Session = Depends(get_db
         ).first()
 
         if not user:
-            # Mapper l'ancien nom de plan vers le nouveau si nécessaire
-            plan = PLAN_MAPPING.get(auth_data.plan, auth_data.plan) if auth_data.plan else 'free'
-            if plan not in ['free', 'starter', 'pro', 'business']:
-                plan = 'free'
-
-            # Récupérer les crédits depuis la configuration
+            # IMPORTANT: Toujours créer avec le plan "free" lors de l'inscription
+            # Les plans payants seront activés uniquement après paiement via Stripe
+            plan = 'free'
             credits = get_plan_credits(plan)
 
             # Crée un nouveau compte
