@@ -14,17 +14,25 @@ def generate_verification_code() -> str:
 
 def validate_password_strength(password: str) -> tuple[bool, str]:
     """
-    Valide la force du mot de passe
+    Valide la force du mot de passe - Minimum requis: MOYEN
     Retourne (is_valid, error_message)
+
+    Critères minimum (MOYEN):
+    - Au moins 8 caractères
+    - Au moins 1 lettre minuscule
+    - Au moins 1 chiffre
     """
     if len(password) < 8:
         return False, "Le mot de passe doit contenir au moins 8 caractères"
 
-    if not re.search(r'[0-9]', password):
-        return False, "Le mot de passe doit contenir au moins 1 chiffre"
+    has_lowercase = bool(re.search(r'[a-z]', password))
+    has_digit = bool(re.search(r'[0-9]', password))
 
-    if not re.search(r'[a-zA-Z]', password):
-        return False, "Le mot de passe doit contenir au moins 1 lettre"
+    if not has_lowercase:
+        return False, "Le mot de passe doit contenir au moins une lettre minuscule"
+
+    if not has_digit:
+        return False, "Le mot de passe doit contenir au moins 1 chiffre"
 
     return True, ""
 
