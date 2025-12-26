@@ -62,6 +62,7 @@ def read_users_me(
         "id": current_user.id,
         "email": current_user.email,
         "name": current_user.name,
+        "subscription_tier": current_user.subscription_tier,  # Keep original subscription tier
         "current_plan": effective_plan,  # Use effective plan instead of user's plan
         "credits_remaining": current_user.credits_remaining,
         "email_verified": current_user.email_verified,
