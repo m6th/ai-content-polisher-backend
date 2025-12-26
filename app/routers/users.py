@@ -52,19 +52,20 @@ def read_users_me(
     current_user = Depends(auth.get_current_user),
     db: Session = Depends(get_db)
 ):
-    from app.utils.team_utils import get_effective_plan
+    from app.utils.team_utils import get_effective_plan, get_effective_credits
 
-    # Get effective plan (considering team membership)
+    # Get effective plan and credits (considering team membership)
     effective_plan = get_effective_plan(current_user, db)
+    effective_credits = get_effective_credits(current_user, db)
 
-    # Create response with effective plan
+    # Create response with effective plan and credits
     user_data = {
         "id": current_user.id,
         "email": current_user.email,
         "name": current_user.name,
         "subscription_tier": current_user.subscription_tier,  # Keep original subscription tier
         "current_plan": effective_plan,  # Use effective plan instead of user's plan
-        "credits_remaining": current_user.credits_remaining,
+        "credits_remaining": effective_credits,  # Use effective credits (team or personal)
         "email_verified": current_user.email_verified,
         "created_at": current_user.created_at,
         "is_admin": current_user.is_admin

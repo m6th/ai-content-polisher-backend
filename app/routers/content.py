@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 from app import crud, schemas, auth, models
 from app.database import get_db
-from app.utils.team_utils import get_effective_plan
+from app.utils.team_utils import get_effective_plan, get_effective_credits, deduct_credits
 import io
 import zipfile
 from datetime import datetime
@@ -17,7 +17,9 @@ def polish_content(
     current_user: models.User = Depends(auth.get_current_user),
     db: Session = Depends(get_db)
 ):
-    if current_user.credits_remaining <= 0:
+    # Check effective credits (team or personal)
+    effective_credits = get_effective_credits(current_user, db)
+    if effective_credits <= 0:
         raise HTTPException(status_code=403, detail="Crédits insuffisants")
 
     content_request = crud.create_content_request(db, request, current_user.id)
@@ -99,8 +101,9 @@ def polish_content(
                 "created_at": generated.created_at
             })
             variant_counter += 1
-    
-    crud.decrease_user_credits(db, current_user.id)
+
+    # Deduct credits from team or personal pool
+    deduct_credits(current_user, db, amount=1)
     crud.create_usage_analytics(db, current_user.id, tokens_used, None)
 
     return {
@@ -116,13 +119,34 @@ def get_content_history(
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
     search: Optional[str] = None,
+    show_team: bool = Query(True, description="Include team members' content"),
     current_user: models.User = Depends(auth.get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Get user's content generation history with pagination"""
-    query = db.query(models.ContentRequest).filter(
-        models.ContentRequest.user_id == current_user.id
-    )
+    """Get user's content generation history with pagination, optionally including team content"""
+    from app.utils.team_utils import get_user_team
+
+    # Get user's team if they are a member
+    team = get_user_team(current_user, db)
+
+    # Build query
+    if show_team and team:
+        # Get all team member IDs
+        team_members = db.query(models.TeamMember).filter(
+            models.TeamMember.team_id == team.id,
+            models.TeamMember.status == "active"
+        ).all()
+        team_user_ids = [member.user_id for member in team_members]
+
+        # Query for all team members' content
+        query = db.query(models.ContentRequest).filter(
+            models.ContentRequest.user_id.in_(team_user_ids)
+        )
+    else:
+        # Query only for current user's content
+        query = db.query(models.ContentRequest).filter(
+            models.ContentRequest.user_id == current_user.id
+        )
 
     # Search filter
     if search:
@@ -145,12 +169,21 @@ def get_content_history(
             models.GeneratedContent.request_id == req.id
         ).all()
 
+        # Get user info for this content
+        user = db.query(models.User).filter(models.User.id == req.user_id).first()
+
         history_items.append({
             "id": req.id,
             "original_text": req.original_text,
             "tone": req.tone,
             "language": req.language,
             "created_at": req.created_at,
+            "created_by": {
+                "id": user.id,
+                "name": user.name,
+                "email": user.email
+            } if user else None,
+            "is_own": req.user_id == current_user.id,
             "formats_count": len(generated_contents),
             "generated_contents": [
                 {

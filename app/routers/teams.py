@@ -144,6 +144,7 @@ def get_my_team(
             "plan": team.plan,
             "max_members": team.max_members,
             "current_members": len(members_data),
+            "team_credits": team.team_credits,
             "created_at": team.created_at.isoformat()
         },
         "membership": {

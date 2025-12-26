@@ -106,6 +106,7 @@ class Team(Base):
     owner_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     plan = Column(String, nullable=False)  # pro, business
     max_members = Column(Integer, default=2)  # 2 for Pro, 5 for Business
+    team_credits = Column(Integer, default=0)  # Shared team credits pool
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
