@@ -267,23 +267,17 @@ def accept_invitation(
         db.commit()
         raise HTTPException(status_code=400, detail="Cette invitation a expiré")
 
-    # Check if email matches
-    if invitation.email != current_user.email:
-        raise HTTPException(
-            status_code=403,
-            detail="Cette invitation est destinée à un autre email"
-        )
-
-    # Check if user is already in a team
+    # Check if user is already in THIS team
     existing_membership = db.query(models.TeamMember).filter(
         models.TeamMember.user_id == current_user.id,
+        models.TeamMember.team_id == invitation.team_id,
         models.TeamMember.status == "active"
     ).first()
 
     if existing_membership:
         raise HTTPException(
             status_code=400,
-            detail="Vous êtes déjà membre d'une équipe"
+            detail="Vous êtes déjà membre de cette équipe"
         )
 
     # Get team
