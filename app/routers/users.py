@@ -48,8 +48,28 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
     return {"access_token": access_token, "token_type": "bearer"}
 
 @router.get("/me", response_model=schemas.UserResponse)
-def read_users_me(current_user = Depends(auth.get_current_user)):
-    return current_user
+def read_users_me(
+    current_user = Depends(auth.get_current_user),
+    db: Session = Depends(get_db)
+):
+    from app.utils.team_utils import get_effective_plan
+
+    # Get effective plan (considering team membership)
+    effective_plan = get_effective_plan(current_user, db)
+
+    # Create response with effective plan
+    user_data = {
+        "id": current_user.id,
+        "email": current_user.email,
+        "name": current_user.name,
+        "current_plan": effective_plan,  # Use effective plan instead of user's plan
+        "credits_remaining": current_user.credits_remaining,
+        "email_verified": current_user.email_verified,
+        "created_at": current_user.created_at,
+        "is_admin": current_user.is_admin
+    }
+
+    return user_data
 
 class GoogleAuthRequest(BaseModel):
     token: str
