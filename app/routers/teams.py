@@ -322,6 +322,97 @@ def accept_invitation(
         }
     }
 
+class JoinTeamRequest(BaseModel):
+    code: str
+
+@router.post("/join")
+def join_team_with_code(
+    data: JoinTeamRequest,
+    current_user: models.User = Depends(auth.get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Join a team using an invitation code"""
+
+    # Find invitation by token (code)
+    invitation = db.query(models.TeamInvitation).filter(
+        models.TeamInvitation.token == data.code,
+        models.TeamInvitation.status == "pending"
+    ).first()
+
+    if not invitation:
+        raise HTTPException(
+            status_code=404,
+            detail="Code d'invitation invalide ou expiré"
+        )
+
+    # Check if expired
+    if invitation.expires_at < datetime.utcnow():
+        invitation.status = "expired"
+        db.commit()
+        raise HTTPException(
+            status_code=400,
+            detail="Ce code d'invitation a expiré"
+        )
+
+    # Get team
+    team = db.query(models.Team).filter(
+        models.Team.id == invitation.team_id
+    ).first()
+
+    if not team:
+        raise HTTPException(status_code=404, detail="Équipe introuvable")
+
+    # Check if user is already in THIS team
+    existing_membership = db.query(models.TeamMember).filter(
+        models.TeamMember.user_id == current_user.id,
+        models.TeamMember.team_id == team.id,
+        models.TeamMember.status == "active"
+    ).first()
+
+    if existing_membership:
+        raise HTTPException(
+            status_code=400,
+            detail="Vous êtes déjà membre de cette équipe"
+        )
+
+    # Check if team is full
+    current_members = db.query(models.TeamMember).filter(
+        models.TeamMember.team_id == team.id,
+        models.TeamMember.status == "active"
+    ).count()
+
+    if current_members >= team.max_members:
+        raise HTTPException(
+            status_code=400,
+            detail=f"L'équipe est complète ({team.max_members} membres max)"
+        )
+
+    # Add user to team
+    member = models.TeamMember(
+        team_id=team.id,
+        user_id=current_user.id,
+        role="member",
+        status="active"
+    )
+
+    db.add(member)
+
+    # Mark invitation as accepted
+    invitation.status = "accepted"
+
+    db.commit()
+    db.refresh(member)
+
+    return {
+        "success": True,
+        "message": f"Vous avez rejoint l'équipe '{team.name}' avec succès",
+        "team": {
+            "id": team.id,
+            "name": team.name,
+            "plan": team.plan
+        }
+    }
+
 @router.delete("/members/{member_id}")
 def remove_member(
     member_id: int,
