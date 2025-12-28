@@ -314,3 +314,16 @@ def change_email(
         "message": "Email changed successfully. Please verify your new email.",
         "email": current_user.email
     }
+
+@router.post("/test-email")
+def test_email(
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    """Test endpoint to verify email sending works"""
+    success = send_verification_email(current_user.email, "123456", current_user.name)
+
+    return {
+        "message": "Test email sent" if success else "Failed to send test email",
+        "sent_to": current_user.email,
+        "success": success
+    }

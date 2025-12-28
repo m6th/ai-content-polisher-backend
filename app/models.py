@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Enum, Float
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Enum, Float, Boolean
 from sqlalchemy.orm import relationship
 from datetime import datetime
 import enum
@@ -97,6 +97,12 @@ class ScheduledContent(Base):
     notes = Column(Text, nullable=True)  # Optional notes
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Reminder tracking
+    reminder_24h_sent = Column(Boolean, default=False, nullable=False)
+    reminder_1h_sent = Column(Boolean, default=False, nullable=False)
+    reminder_24h_sent_at = Column(DateTime, nullable=True)
+    reminder_1h_sent_at = Column(DateTime, nullable=True)
 
 class Team(Base):
     __tablename__ = "teams"
