@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Header
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_
 from typing import List, Optional
@@ -8,6 +8,8 @@ from app import models, auth
 from app.database import get_db
 from app.plan_config import get_plan_config
 from app.utils.team_utils import get_effective_plan
+from app.email_service import send_calendar_reminder
+import os
 
 router = APIRouter(prefix="/calendar", tags=["calendar"])
 
@@ -339,3 +341,109 @@ def get_upcoming_content(
         "total": len(results),
         "period_days": days
     }
+
+@router.post("/send-reminders")
+def trigger_reminders(
+    x_cron_secret: Optional[str] = Header(None),
+    db: Session = Depends(get_db)
+):
+    """
+    Endpoint pour déclencher l'envoi des rappels de calendrier.
+    Sécurisé par une clé secrète pour éviter les appels non autorisés.
+    À appeler toutes les heures via un cron job externe (cron-job.org, etc.)
+    """
+    # Vérifier la clé secrète
+    CRON_SECRET = os.getenv("CRON_SECRET", "")
+    if not CRON_SECRET or x_cron_secret != CRON_SECRET:
+        raise HTTPException(status_code=403, detail="Non autorisé")
+
+    now = datetime.utcnow()
+    reminders_sent = {"24h": 0, "1h": 0}
+
+    try:
+        # Rappels 24h
+        reminder_24h_time = now + timedelta(hours=24)
+        scheduled_24h = db.query(models.ScheduledContent).filter(
+            models.ScheduledContent.status == "scheduled",
+            models.ScheduledContent.reminder_24h_sent == False,
+            models.ScheduledContent.scheduled_date >= reminder_24h_time - timedelta(minutes=30),
+            models.ScheduledContent.scheduled_date <= reminder_24h_time + timedelta(minutes=30)
+        ).all()
+
+        for scheduled in scheduled_24h:
+            user = db.query(models.User).filter(models.User.id == scheduled.user_id).first()
+            if not user:
+                continue
+
+            content_preview = "Votre contenu planifié"
+            if scheduled.generated_content_id:
+                gen_content = db.query(models.GeneratedContent).filter(
+                    models.GeneratedContent.id == scheduled.generated_content_id
+                ).first()
+                if gen_content:
+                    content_preview = gen_content.polished_text
+
+            scheduled_date_str = scheduled.scheduled_date.strftime("%d/%m/%Y à %H:%M")
+
+            success = send_calendar_reminder(
+                to_email=user.email,
+                user_name=user.name or "utilisateur",
+                content_preview=content_preview,
+                platform=scheduled.platform,
+                scheduled_date=scheduled_date_str,
+                time_before="24h"
+            )
+
+            if success:
+                scheduled.reminder_24h_sent = True
+                scheduled.reminder_24h_sent_at = now
+                db.commit()
+                reminders_sent["24h"] += 1
+
+        # Rappels 1h
+        reminder_1h_time = now + timedelta(hours=1)
+        scheduled_1h = db.query(models.ScheduledContent).filter(
+            models.ScheduledContent.status == "scheduled",
+            models.ScheduledContent.reminder_1h_sent == False,
+            models.ScheduledContent.scheduled_date >= reminder_1h_time - timedelta(minutes=5),
+            models.ScheduledContent.scheduled_date <= reminder_1h_time + timedelta(minutes=5)
+        ).all()
+
+        for scheduled in scheduled_1h:
+            user = db.query(models.User).filter(models.User.id == scheduled.user_id).first()
+            if not user:
+                continue
+
+            content_preview = "Votre contenu planifié"
+            if scheduled.generated_content_id:
+                gen_content = db.query(models.GeneratedContent).filter(
+                    models.GeneratedContent.id == scheduled.generated_content_id
+                ).first()
+                if gen_content:
+                    content_preview = gen_content.polished_text
+
+            scheduled_date_str = scheduled.scheduled_date.strftime("%d/%m/%Y à %H:%M")
+
+            success = send_calendar_reminder(
+                to_email=user.email,
+                user_name=user.name or "utilisateur",
+                content_preview=content_preview,
+                platform=scheduled.platform,
+                scheduled_date=scheduled_date_str,
+                time_before="1h"
+            )
+
+            if success:
+                scheduled.reminder_1h_sent = True
+                scheduled.reminder_1h_sent_at = now
+                db.commit()
+                reminders_sent["1h"] += 1
+
+        return {
+            "success": True,
+            "reminders_sent": reminders_sent,
+            "timestamp": now.isoformat()
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
