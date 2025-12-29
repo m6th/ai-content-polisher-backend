@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from app import models, auth
 from app.database import get_db
 from app.plan_config import get_plan_config
-from app.utils.team_utils import get_effective_plan
+from app.utils.team_utils import get_effective_plan, get_user_team
 from app.email_service import send_calendar_reminder
 import os
 
@@ -57,23 +57,33 @@ def schedule_content(
             detail="Au moins un content_request_id ou generated_content_id doit être fourni"
         )
 
-    # If content_request_id is provided, verify ownership
+    # Get user's team and build list of allowed user IDs (for team content access)
+    team = get_user_team(current_user, db)
+    allowed_user_ids = [current_user.id]
+    if team:
+        team_members = db.query(models.TeamMember).filter(
+            models.TeamMember.team_id == team.id,
+            models.TeamMember.status == "active"
+        ).all()
+        allowed_user_ids.extend([member.user_id for member in team_members])
+
+    # If content_request_id is provided, verify ownership (including team content)
     if data.content_request_id:
         content_request = db.query(models.ContentRequest).filter(
             models.ContentRequest.id == data.content_request_id,
-            models.ContentRequest.user_id == current_user.id
+            models.ContentRequest.user_id.in_(allowed_user_ids)
         ).first()
 
         if not content_request:
             raise HTTPException(status_code=404, detail="Content request not found")
 
-    # If generated_content_id is provided, verify ownership
+    # If generated_content_id is provided, verify ownership (including team content)
     if data.generated_content_id:
         generated_content = db.query(models.GeneratedContent).join(
             models.ContentRequest
         ).filter(
             models.GeneratedContent.id == data.generated_content_id,
-            models.ContentRequest.user_id == current_user.id
+            models.ContentRequest.user_id.in_(allowed_user_ids)
         ).first()
 
         if not generated_content:
