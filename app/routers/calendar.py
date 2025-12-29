@@ -457,3 +457,40 @@ def trigger_reminders(
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/{schedule_id}")
+def delete_scheduled_content(
+    schedule_id: int,
+    current_user: models.User = Depends(auth.get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Delete a scheduled content (Pro/Business only)"""
+
+    # Get effective plan (considering team membership)
+    effective_plan = get_effective_plan(current_user, db)
+
+    # Check if user has calendar feature
+    plan_config = get_plan_config(effective_plan)
+    calendar_enabled = plan_config.get('features', {}).get('content_calendar', False)
+
+    if not calendar_enabled:
+        raise HTTPException(
+            status_code=403,
+            detail="Le calendrier éditorial est réservé aux plans Pro et Business"
+        )
+
+    # Find the scheduled content
+    scheduled = db.query(models.ScheduledContent).filter(
+        models.ScheduledContent.id == schedule_id,
+        models.ScheduledContent.user_id == current_user.id
+    ).first()
+
+    if not scheduled:
+        raise HTTPException(status_code=404, detail="Contenu planifié non trouvé")
+
+    # Delete it
+    db.delete(scheduled)
+    db.commit()
+
+    return {"success": True, "message": "Contenu planifié supprimé"}
