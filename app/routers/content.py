@@ -189,7 +189,8 @@ def get_content_history(
                 {
                     "id": gc.id,
                     "content": gc.polished_text,
-                    "variant_number": gc.variant_number
+                    "variant_number": gc.variant_number,
+                    "format_name": gc.format_name
                 }
                 for gc in generated_contents
             ]
