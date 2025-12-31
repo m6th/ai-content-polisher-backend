@@ -17,15 +17,36 @@ def polish_content(
     current_user: models.User = Depends(auth.get_current_user),
     db: Session = Depends(get_db)
 ):
-    # Check effective credits (team or personal)
-    effective_credits = get_effective_credits(current_user, db)
-    if effective_credits <= 0:
-        raise HTTPException(status_code=403, detail="Crédits insuffisants")
+    # 🌟 MODE ESSAI PRO
+    using_pro_trial = False
+    if request.use_pro_trial:
+        # Vérifier si l'utilisateur peut utiliser l'essai Pro
+        if current_user.current_plan not in ['free', 'starter']:
+            raise HTTPException(status_code=403, detail="L'essai Pro est réservé aux utilisateurs Free et Starter")
+
+        if current_user.has_used_pro_trial:
+            raise HTTPException(status_code=403, detail="Vous avez déjà utilisé votre essai Pro gratuit")
+
+        # Marquer l'essai comme utilisé
+        current_user.has_used_pro_trial = True
+        current_user.pro_trial_activated_at = datetime.utcnow()
+        db.commit()
+        using_pro_trial = True
+        print(f"🌟 User {current_user.id} is using Pro trial!")
+
+    # Check effective credits (skip if using Pro trial)
+    if not using_pro_trial:
+        effective_credits = get_effective_credits(current_user, db)
+        if effective_credits <= 0:
+            raise HTTPException(status_code=403, detail="Crédits insuffisants")
 
     content_request = crud.create_content_request(db, request, current_user.id)
 
-    # Get effective plan (considering team membership)
-    effective_plan = get_effective_plan(current_user, db)
+    # Get effective plan (force 'pro' if using trial, otherwise use current plan)
+    if using_pro_trial:
+        effective_plan = 'pro'
+    else:
+        effective_plan = get_effective_plan(current_user, db)
 
     # 🚀 GÉNÈRE LES FORMATS SELON LE PLAN
     from app.ai_service import polish_content_multi_format, generate_hashtags, generate_ai_suggestions
@@ -99,8 +120,10 @@ def polish_content(
                 "created_at": generated.created_at
             })
 
-    # Deduct credits from team or personal pool
-    deduct_credits(current_user, db, amount=1)
+    # Deduct credits from team or personal pool (skip if using Pro trial)
+    if not using_pro_trial:
+        deduct_credits(current_user, db, amount=1)
+
     crud.create_usage_analytics(db, current_user.id, tokens_used, None)
 
     return {
@@ -108,7 +131,8 @@ def polish_content(
         "formats": generated_contents,
         "hashtags": hashtags if hashtags_enabled else None,
         "ai_suggestions": ai_suggestions,
-        "tokens_used": tokens_used
+        "tokens_used": tokens_used,
+        "pro_trial_used": using_pro_trial  # Indique si l'essai Pro a été utilisé
     }
 
 @router.get("/history")

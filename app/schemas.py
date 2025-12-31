@@ -32,7 +32,7 @@ class ContentRequestBase(BaseModel):
     language: Optional[str] = "fr"
 
 class ContentRequestCreate(ContentRequestBase):
-    pass
+    use_pro_trial: Optional[bool] = False  # Utiliser le crédit d'essai Pro gratuit
 
 class ContentRequestResponse(ContentRequestBase):
     id: int

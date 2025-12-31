@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.database import engine, Base
-from app.routers import users, content, analytics, admin, plans, ai, stripe_router, calendar, teams
+from app.routers import users, content, analytics, admin, plans, ai, stripe_router, calendar, teams, trial
 
 # Crée les tables (au cas où)
 Base.metadata.create_all(bind=engine)
@@ -37,6 +37,7 @@ app.include_router(ai.router)
 app.include_router(stripe_router.router)
 app.include_router(calendar.router)
 app.include_router(teams.router)
+app.include_router(trial.router)
 
 @app.get("/")
 def home():

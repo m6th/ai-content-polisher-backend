@@ -43,6 +43,10 @@ class User(Base):
     subscription_status = Column(String, default="inactive")  # active, canceled, past_due, etc.
     subscription_end_date = Column(DateTime, nullable=True)  # Date de fin d'abonnement
 
+    # Pro trial tracking
+    has_used_pro_trial = Column(Boolean, default=False, nullable=False)  # A-t-il utilisé son essai Pro gratuit
+    pro_trial_activated_at = Column(DateTime, nullable=True)  # Quand l'essai a été activé
+
     content_requests = relationship("ContentRequest", back_populates="user")
     usage_analytics = relationship("UsageAnalytics", back_populates="user")
 
