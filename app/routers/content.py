@@ -63,7 +63,6 @@ def polish_content(
     
     # Sauvegarde tous les formats avec leurs variantes
     generated_contents = []
-    variant_counter = 1
 
     for format_name, content_data in all_formats.items():
         # Si content_data est une liste (plusieurs variantes), traiter chacune
@@ -73,7 +72,7 @@ def polish_content(
                     db,
                     content_request.id,
                     content_text,
-                    variant_number=variant_counter,
+                    variant_number=variant_idx,  # Use actual variant index (1, 2, 3)
                     format_name=format_name
                 )
                 generated_contents.append({
@@ -83,14 +82,13 @@ def polish_content(
                     "content": content_text,
                     "created_at": generated.created_at
                 })
-                variant_counter += 1
         else:
             # Une seule variante (plans Free/Starter)
             generated = crud.create_generated_content(
                 db,
                 content_request.id,
                 content_data,
-                variant_number=variant_counter,
+                variant_number=1,  # Always 1 for single variant
                 format_name=format_name
             )
             generated_contents.append({
@@ -100,7 +98,6 @@ def polish_content(
                 "content": content_data,
                 "created_at": generated.created_at
             })
-            variant_counter += 1
 
     # Deduct credits from team or personal pool
     deduct_credits(current_user, db, amount=1)
