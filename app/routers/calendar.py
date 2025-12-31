@@ -153,6 +153,12 @@ def get_calendar_view(
             end = start.replace(month=start.month + 1, day=1) - timedelta(days=1)
         end = end.replace(hour=23, minute=59, second=59)
 
+    print(f"📅 Calendar view requested:")
+    print(f"  Start date param: {start_date}")
+    print(f"  End date param: {end_date}")
+    print(f"  Parsed start: {start}")
+    print(f"  Parsed end: {end}")
+
     # Query scheduled content
     query = db.query(models.ScheduledContent).filter(
         models.ScheduledContent.user_id == current_user.id,
@@ -164,6 +170,10 @@ def get_calendar_view(
         query = query.filter(models.ScheduledContent.platform == platform)
 
     scheduled_items = query.order_by(models.ScheduledContent.scheduled_date).all()
+
+    print(f"📊 Found {len(scheduled_items)} scheduled items")
+    for item in scheduled_items:
+        print(f"  - ID {item.id}: {item.scheduled_date} ({item.scheduled_date.date().isoformat()})")
 
     # Group by date
     calendar_data = {}
@@ -193,6 +203,8 @@ def get_calendar_view(
             "content_request_id": item.content_request_id,
             "generated_content_id": item.generated_content_id
         })
+
+    print(f"🔑 Calendar data keys: {list(calendar_data.keys())}")
 
     return {
         "start_date": start.isoformat(),
