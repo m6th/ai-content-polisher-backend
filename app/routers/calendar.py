@@ -382,15 +382,26 @@ def trigger_reminders(
     now = datetime.utcnow()
     reminders_sent = {"24h": 0, "1h": 0}
 
+    print(f"\n{'='*60}")
+    print(f"🔔 SEND REMINDERS TRIGGERED AT: {now.isoformat()}")
+    print(f"{'='*60}")
+
     try:
         # Rappels 24h
         reminder_24h_time = now + timedelta(hours=24)
+        print(f"\n📅 Checking 24h reminders:")
+        print(f"  Looking for content scheduled between:")
+        print(f"    {(reminder_24h_time - timedelta(minutes=30)).isoformat()}")
+        print(f"    {(reminder_24h_time + timedelta(minutes=30)).isoformat()}")
+
         scheduled_24h = db.query(models.ScheduledContent).filter(
             models.ScheduledContent.status == "scheduled",
             models.ScheduledContent.reminder_24h_sent == False,
             models.ScheduledContent.scheduled_date >= reminder_24h_time - timedelta(minutes=30),
             models.ScheduledContent.scheduled_date <= reminder_24h_time + timedelta(minutes=30)
         ).all()
+
+        print(f"  Found {len(scheduled_24h)} items for 24h reminders")
 
         for scheduled in scheduled_24h:
             user = db.query(models.User).filter(models.User.id == scheduled.user_id).first()
@@ -424,12 +435,30 @@ def trigger_reminders(
 
         # Rappels 1h
         reminder_1h_time = now + timedelta(hours=1)
+        print(f"\n⏰ Checking 1h reminders:")
+        print(f"  Current UTC time: {now.isoformat()}")
+        print(f"  Looking for content scheduled between:")
+        print(f"    {(reminder_1h_time - timedelta(minutes=30)).isoformat()}")
+        print(f"    {(reminder_1h_time + timedelta(minutes=30)).isoformat()}")
+
+        # FIXED: Changed from ±5 minutes to ±30 minutes window
         scheduled_1h = db.query(models.ScheduledContent).filter(
             models.ScheduledContent.status == "scheduled",
             models.ScheduledContent.reminder_1h_sent == False,
-            models.ScheduledContent.scheduled_date >= reminder_1h_time - timedelta(minutes=5),
-            models.ScheduledContent.scheduled_date <= reminder_1h_time + timedelta(minutes=5)
+            models.ScheduledContent.scheduled_date >= reminder_1h_time - timedelta(minutes=30),
+            models.ScheduledContent.scheduled_date <= reminder_1h_time + timedelta(minutes=30)
         ).all()
+
+        print(f"  Found {len(scheduled_1h)} items for 1h reminders")
+
+        # Log all scheduled items for debugging
+        all_scheduled = db.query(models.ScheduledContent).filter(
+            models.ScheduledContent.status == "scheduled",
+            models.ScheduledContent.reminder_1h_sent == False
+        ).all()
+        print(f"\n  📋 All pending scheduled content (not sent 1h reminder yet):")
+        for s in all_scheduled:
+            print(f"    - ID {s.id}: {s.scheduled_date.isoformat()} (platform: {s.platform})")
 
         for scheduled in scheduled_1h:
             user = db.query(models.User).filter(models.User.id == scheduled.user_id).first()
@@ -446,6 +475,7 @@ def trigger_reminders(
 
             scheduled_date_str = scheduled.scheduled_date.strftime("%d/%m/%Y à %H:%M")
 
+            print(f"\n  📧 Sending 1h reminder to {user.email} for content ID {scheduled.id}")
             success = send_calendar_reminder(
                 to_email=user.email,
                 user_name=user.name or "utilisateur",
@@ -456,10 +486,18 @@ def trigger_reminders(
             )
 
             if success:
+                print(f"    ✅ Reminder sent successfully")
                 scheduled.reminder_1h_sent = True
                 scheduled.reminder_1h_sent_at = now
                 db.commit()
                 reminders_sent["1h"] += 1
+            else:
+                print(f"    ❌ Failed to send reminder")
+
+        print(f"\n✨ Summary:")
+        print(f"  24h reminders sent: {reminders_sent['24h']}")
+        print(f"  1h reminders sent: {reminders_sent['1h']}")
+        print(f"{'='*60}\n")
 
         return {
             "success": True,
