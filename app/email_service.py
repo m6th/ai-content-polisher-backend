@@ -6,11 +6,12 @@ from email.mime.multipart import MIMEMultipart
 
 # Configuration Brevo (SMTP)
 SMTP_HOST = os.getenv("SMTP_HOST", "smtp-relay.brevo.com")
-SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
+SMTP_PORT = int(os.getenv("SMTP_PORT", "465"))  # Port 465 avec SSL au lieu de 587
 SMTP_USER = os.getenv("SMTP_USER", "")
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
 FROM_EMAIL = os.getenv("FROM_EMAIL", "contact@aicontentpolisher.com")
 FROM_NAME = os.getenv("FROM_NAME", "AI Content Polisher")
+USE_SSL = os.getenv("SMTP_USE_SSL", "true").lower() == "true"  # Utiliser SSL par défaut
 
 def send_verification_email(to_email: str, verification_code: str, user_name: Optional[str] = None) -> bool:
     """Envoie un email de vérification avec le code à 6 chiffres via Brevo SMTP"""
@@ -178,11 +179,18 @@ def send_verification_email(to_email: str, verification_code: str, user_name: Op
         html_part = MIMEText(html_content, 'html')
         msg.attach(html_part)
 
-        # Envoyer l'email via SMTP Brevo
-        with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
-            server.starttls()
-            server.login(SMTP_USER, SMTP_PASSWORD)
-            server.send_message(msg)
+        # Envoyer l'email via SMTP Brevo avec timeout
+        if USE_SSL:
+            # Utiliser SMTP_SSL pour le port 465
+            with smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT, timeout=10) as server:
+                server.login(SMTP_USER, SMTP_PASSWORD)
+                server.send_message(msg)
+        else:
+            # Utiliser SMTP avec STARTTLS pour le port 587
+            with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=10) as server:
+                server.starttls()
+                server.login(SMTP_USER, SMTP_PASSWORD)
+                server.send_message(msg)
 
         print(f"✅ Email de vérification envoyé à {to_email} via Brevo")
         return True
@@ -370,11 +378,18 @@ def send_calendar_reminder(to_email: str, user_name: str, content_preview: str, 
         html_part = MIMEText(html_content, 'html')
         msg.attach(html_part)
 
-        # Envoyer l'email via SMTP Brevo
-        with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
-            server.starttls()
-            server.login(SMTP_USER, SMTP_PASSWORD)
-            server.send_message(msg)
+        # Envoyer l'email via SMTP Brevo avec timeout
+        if USE_SSL:
+            # Utiliser SMTP_SSL pour le port 465
+            with smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT, timeout=10) as server:
+                server.login(SMTP_USER, SMTP_PASSWORD)
+                server.send_message(msg)
+        else:
+            # Utiliser SMTP avec STARTTLS pour le port 587
+            with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=10) as server:
+                server.starttls()
+                server.login(SMTP_USER, SMTP_PASSWORD)
+                server.send_message(msg)
 
         print(f"✅ Rappel calendrier envoyé à {to_email} via Brevo ({time_before} avant)")
         return True
