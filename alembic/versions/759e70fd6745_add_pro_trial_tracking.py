@@ -19,9 +19,19 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # Add has_used_pro_trial column to users table
-    op.add_column('users', sa.Column('has_used_pro_trial', sa.Boolean(), nullable=False, server_default='0'))
-    op.add_column('users', sa.Column('pro_trial_activated_at', sa.DateTime(), nullable=True))
+    # Add has_used_pro_trial column to users table (if not exists)
+    from sqlalchemy import inspect
+    from sqlalchemy import create_engine
+
+    bind = op.get_bind()
+    inspector = inspect(bind)
+    columns = [col['name'] for col in inspector.get_columns('users')]
+
+    if 'has_used_pro_trial' not in columns:
+        op.add_column('users', sa.Column('has_used_pro_trial', sa.Boolean(), nullable=False, server_default='0'))
+
+    if 'pro_trial_activated_at' not in columns:
+        op.add_column('users', sa.Column('pro_trial_activated_at', sa.DateTime(), nullable=True))
 
 
 def downgrade() -> None:
