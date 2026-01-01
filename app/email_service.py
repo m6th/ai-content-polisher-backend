@@ -1,23 +1,22 @@
 import os
 from typing import Optional
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
+import sib_api_v3_sdk
+from sib_api_v3_sdk.rest import ApiException
 
-# Configuration Brevo (SMTP)
-SMTP_HOST = os.getenv("SMTP_HOST", "smtp-relay.brevo.com")
-SMTP_PORT = int(os.getenv("SMTP_PORT", "465"))  # Port 465 avec SSL au lieu de 587
-SMTP_USER = os.getenv("SMTP_USER", "")
-SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
+# Configuration Brevo (API)
+BREVO_API_KEY = os.getenv("BREVO_API_KEY", "")
 FROM_EMAIL = os.getenv("FROM_EMAIL", "contact@aicontentpolisher.com")
 FROM_NAME = os.getenv("FROM_NAME", "AI Content Polisher")
-USE_SSL = os.getenv("SMTP_USE_SSL", "true").lower() == "true"  # Utiliser SSL par défaut
+
+# Configuration du client API Brevo
+configuration = sib_api_v3_sdk.Configuration()
+configuration.api_key['api-key'] = BREVO_API_KEY
 
 def send_verification_email(to_email: str, verification_code: str, user_name: Optional[str] = None) -> bool:
-    """Envoie un email de vérification avec le code à 6 chiffres via Brevo SMTP"""
+    """Envoie un email de vérification avec le code à 6 chiffres via l'API Brevo"""
 
-    # Si pas de configuration SMTP, afficher le code dans la console (mode développement)
-    if not SMTP_USER or not SMTP_PASSWORD:
+    # Si pas de clé API, afficher le code dans la console (mode développement)
+    if not BREVO_API_KEY:
         print(f"\n{'='*50}")
         print(f"MODE DÉVELOPPEMENT - CODE DE VÉRIFICATION")
         print(f"{'='*50}")
@@ -114,16 +113,6 @@ def send_verification_email(to_email: str, verification_code: str, user_name: Op
         .footer p {{
             margin: 5px 0;
         }}
-        .button {{
-            display: inline-block;
-            padding: 14px 28px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            text-decoration: none;
-            border-radius: 8px;
-            font-weight: 600;
-            margin: 20px 0;
-        }}
         .security-note {{
             background: #fef3c7;
             border-left: 4px solid #f59e0b;
@@ -159,7 +148,7 @@ def send_verification_email(to_email: str, verification_code: str, user_name: Op
         </div>
         <div class="footer">
             <p><strong>AI Content Polisher</strong></p>
-            <p>© {2025} AI Content Polisher - Tous droits réservés</p>
+            <p>© 2025 AI Content Polisher - Tous droits réservés</p>
             <p style="margin-top: 15px; font-size: 11px;">
                 Cet email a été envoyé à {to_email}
             </p>
@@ -169,35 +158,34 @@ def send_verification_email(to_email: str, verification_code: str, user_name: Op
 </html>
         """
 
-        # Créer le message email
-        msg = MIMEMultipart('alternative')
-        msg['Subject'] = "Code de vérification - AI Content Polisher"
-        msg['From'] = f"{FROM_NAME} <{FROM_EMAIL}>"
-        msg['To'] = to_email
+        # Créer l'instance API
+        api_instance = sib_api_v3_sdk.TransactionalEmailsApi(sib_api_v3_sdk.ApiClient(configuration))
 
-        # Attacher le contenu HTML
-        html_part = MIMEText(html_content, 'html')
-        msg.attach(html_part)
+        # Créer l'objet email
+        send_smtp_email = sib_api_v3_sdk.SendSmtpEmail(
+            to=[{"email": to_email}],
+            sender={"name": FROM_NAME, "email": FROM_EMAIL},
+            subject="Code de vérification - AI Content Polisher",
+            html_content=html_content
+        )
 
-        # Envoyer l'email via SMTP Brevo avec timeout
-        if USE_SSL:
-            # Utiliser SMTP_SSL pour le port 465
-            with smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT, timeout=10) as server:
-                server.login(SMTP_USER, SMTP_PASSWORD)
-                server.send_message(msg)
-        else:
-            # Utiliser SMTP avec STARTTLS pour le port 587
-            with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=10) as server:
-                server.starttls()
-                server.login(SMTP_USER, SMTP_PASSWORD)
-                server.send_message(msg)
-
-        print(f"✅ Email de vérification envoyé à {to_email} via Brevo")
+        # Envoyer l'email
+        api_response = api_instance.send_transac_email(send_smtp_email)
+        print(f"✅ Email de vérification envoyé à {to_email} via API Brevo (ID: {api_response.message_id})")
         return True
 
-    except Exception as e:
-        print(f"❌ Erreur lors de l'envoi de l'email via Brevo: {e}")
+    except ApiException as e:
+        print(f"❌ Erreur API Brevo lors de l'envoi de l'email: {e}")
         # En mode développement, afficher quand même le code
+        print(f"\n{'='*50}")
+        print(f"CODE DE VÉRIFICATION (envoi échoué)")
+        print(f"{'='*50}")
+        print(f"Email: {to_email}")
+        print(f"Code: {verification_code}")
+        print(f"{'='*50}\n")
+        return False
+    except Exception as e:
+        print(f"❌ Erreur lors de l'envoi de l'email: {e}")
         print(f"\n{'='*50}")
         print(f"CODE DE VÉRIFICATION (envoi échoué)")
         print(f"{'='*50}")
@@ -209,8 +197,8 @@ def send_verification_email(to_email: str, verification_code: str, user_name: Op
 def send_calendar_reminder(to_email: str, user_name: str, content_preview: str, platform: str, scheduled_date: str, time_before: str) -> bool:
     """Envoie un rappel par email pour un contenu planifié"""
 
-    # Si pas de configuration SMTP, afficher dans la console
-    if not SMTP_USER or not SMTP_PASSWORD:
+    # Si pas de clé API, afficher dans la console
+    if not BREVO_API_KEY:
         print(f"\n{'='*50}")
         print(f"MODE DÉVELOPPEMENT - RAPPEL CALENDRIER")
         print(f"{'='*50}")
@@ -358,7 +346,7 @@ def send_calendar_reminder(to_email: str, user_name: str, content_preview: str, 
         </div>
         <div class="footer">
             <p><strong>AI Content Polisher</strong></p>
-            <p>© {2025} AI Content Polisher - Tous droits réservés</p>
+            <p>© 2025 AI Content Polisher - Tous droits réservés</p>
             <p style="margin-top: 15px; font-size: 11px;">
                 Cet email a été envoyé à {to_email}
             </p>
@@ -368,32 +356,25 @@ def send_calendar_reminder(to_email: str, user_name: str, content_preview: str, 
 </html>
         """
 
-        # Créer le message email
-        msg = MIMEMultipart('alternative')
-        msg['Subject'] = subject
-        msg['From'] = f"{FROM_NAME} <{FROM_EMAIL}>"
-        msg['To'] = to_email
+        # Créer l'instance API
+        api_instance = sib_api_v3_sdk.TransactionalEmailsApi(sib_api_v3_sdk.ApiClient(configuration))
 
-        # Attacher le contenu HTML
-        html_part = MIMEText(html_content, 'html')
-        msg.attach(html_part)
+        # Créer l'objet email
+        send_smtp_email = sib_api_v3_sdk.SendSmtpEmail(
+            to=[{"email": to_email}],
+            sender={"name": FROM_NAME, "email": FROM_EMAIL},
+            subject=subject,
+            html_content=html_content
+        )
 
-        # Envoyer l'email via SMTP Brevo avec timeout
-        if USE_SSL:
-            # Utiliser SMTP_SSL pour le port 465
-            with smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT, timeout=10) as server:
-                server.login(SMTP_USER, SMTP_PASSWORD)
-                server.send_message(msg)
-        else:
-            # Utiliser SMTP avec STARTTLS pour le port 587
-            with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=10) as server:
-                server.starttls()
-                server.login(SMTP_USER, SMTP_PASSWORD)
-                server.send_message(msg)
-
-        print(f"✅ Rappel calendrier envoyé à {to_email} via Brevo ({time_before} avant)")
+        # Envoyer l'email
+        api_response = api_instance.send_transac_email(send_smtp_email)
+        print(f"✅ Rappel calendrier envoyé à {to_email} via API Brevo ({time_before} avant, ID: {api_response.message_id})")
         return True
 
+    except ApiException as e:
+        print(f"❌ Erreur API Brevo lors de l'envoi du rappel: {e}")
+        return False
     except Exception as e:
         print(f"❌ Erreur lors de l'envoi du rappel: {e}")
         return False
