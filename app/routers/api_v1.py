@@ -104,16 +104,51 @@ async def generate_content(
 
     # Générer le contenu avec l'AI
     try:
-        result = polish_content_multi_format(
+        formats_dict, tokens_used = polish_content_multi_format(
             original_text=request.text,
             tone=request.tone or "professional",
             language=request.language or "fr",
             user_plan=current_user.current_plan
         )
 
+        # Convertir les formats en variantes
+        # Pour l'API, on prend le format correspondant à la plateforme demandée
+        variants = []
+        if request.platform == "multi_format":
+            # Si multi_format, on retourne tous les formats
+            for format_name, format_content in formats_dict.items():
+                if isinstance(format_content, list):
+                    # Plusieurs variantes (Pro/Business)
+                    for idx, variant_text in enumerate(format_content, 1):
+                        variants.append({
+                            "text": variant_text,
+                            "format": format_name
+                        })
+                else:
+                    # Une seule variante (Free)
+                    variants.append({
+                        "text": format_content,
+                        "format": format_name
+                    })
+        else:
+            # Si plateforme spécifique, on retourne uniquement ce format
+            platform_content = formats_dict.get(request.platform)
+            if platform_content:
+                if isinstance(platform_content, list):
+                    for idx, variant_text in enumerate(platform_content, 1):
+                        variants.append({
+                            "text": variant_text,
+                            "format": request.platform
+                        })
+                else:
+                    variants.append({
+                        "text": platform_content,
+                        "format": request.platform
+                    })
+
         # Sauvegarder les variantes générées
         generated_variants = []
-        for idx, variant in enumerate(result.get("variants", []), 1):
+        for idx, variant in enumerate(variants, 1):
             gen_content = GeneratedContent(
                 request_id=content_request.id,
                 polished_text=variant["text"],
@@ -129,7 +164,7 @@ async def generate_content(
         # Sauvegarder les analytics
         analytics = UsageAnalytics(
             user_id=current_user.id,
-            tokens_used=result.get("tokens_used", 0),
+            tokens_used=tokens_used,
             platform=Platform(request.platform) if request.platform != "multi_format" else None
         )
         db.add(analytics)
