@@ -7,7 +7,7 @@ from datetime import datetime
 from app.database import get_db
 from app.models import User, ContentRequest, GeneratedContent, UsageAnalytics, Platform
 from app.auth_api import get_current_user_from_api_key
-from app.ai_service import AIContentService
+from app.ai_service import polish_content_multi_format
 from app.plan_config import PLAN_LIMITS
 
 router = APIRouter(prefix="/api/v1", tags=["API v1"])
@@ -103,12 +103,9 @@ async def generate_content(
     db.refresh(content_request)
 
     # Générer le contenu avec l'AI
-    ai_service = AIContentService()
-
     try:
-        result = await ai_service.generate_content(
-            text=request.text,
-            platform=request.platform,
+        result = polish_content_multi_format(
+            original_text=request.text,
             tone=request.tone or "professional",
             language=request.language or "fr",
             user_plan=current_user.current_plan
