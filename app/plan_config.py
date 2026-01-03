@@ -83,6 +83,8 @@ PLAN_CONFIG = {
             'api_access': True,
             'custom_tones': True,
             'bulk_export': True,
+            'ai_suggestions': True,  # Suggestions d'amélioration IA
+            'content_calendar': True,  # Planification de contenu
             'extra_credits_price': 0.08  # Prix par crédit supplémentaire
         }
     }
