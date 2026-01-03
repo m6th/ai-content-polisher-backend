@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.database import engine, Base
-from app.routers import users, content, analytics, admin, plans, ai, stripe_router, calendar, teams, trial
+from app.routers import users, content, analytics, admin, plans, ai, stripe_router, calendar, teams, trial, api_keys, api_v1
 
 # Crée les tables (au cas où)
 Base.metadata.create_all(bind=engine)
@@ -38,6 +38,8 @@ app.include_router(stripe_router.router)
 app.include_router(calendar.router)
 app.include_router(teams.router)
 app.include_router(trial.router)
+app.include_router(api_keys.router)  # Gestion des clés API
+app.include_router(api_v1.router)    # API publique v1
 
 @app.get("/")
 def home():

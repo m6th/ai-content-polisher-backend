@@ -141,3 +141,17 @@ class TeamInvitation(Base):
     status = Column(String, default="pending")  # pending, accepted, expired
     created_at = Column(DateTime, default=datetime.utcnow)
     expires_at = Column(DateTime, nullable=False)
+
+class APIKey(Base):
+    __tablename__ = "api_keys"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    name = Column(String(100), nullable=False)  # Nom donné par l'utilisateur (ex: "Production Server")
+    key_prefix = Column(String(20), unique=True, nullable=False, index=True)  # ex: acp_live_abc123
+    key_hash = Column(String(255), nullable=False)  # Hash SHA256 de la clé complète
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    last_used_at = Column(DateTime, nullable=True)  # Dernière utilisation de cette clé
+    is_active = Column(Boolean, default=True, nullable=False)  # Clé active ou révoquée
+
+    user = relationship("User")
