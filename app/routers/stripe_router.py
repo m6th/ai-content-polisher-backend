@@ -16,20 +16,33 @@ router = APIRouter(prefix="/stripe", tags=["stripe"])
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET")
 
-# Plan to Stripe Price ID mapping (you'll need to create these in Stripe Dashboard)
+# Plan to Stripe Price ID mapping - Support Monthly and Annual billing
 STRIPE_PRICE_IDS = {
-    "starter": os.getenv("STRIPE_PRICE_STARTER", "price_starter"),    # 7.99€/mois
-    "pro": os.getenv("STRIPE_PRICE_PRO", "price_pro"),                # 17.99€/mois
-    "business": os.getenv("STRIPE_PRICE_BUSINESS", "price_business"), # 44.99€/mois
+    # Monthly prices
+    "starter_monthly": os.getenv("STRIPE_PRICE_STARTER_MONTHLY", "price_1SluzH42VGYpyYwfjy3Ylk2o"),
+    "pro_monthly": os.getenv("STRIPE_PRICE_PRO_MONTHLY", "price_1Slv1h42VGYpyYwfHwnvlbzE"),
+    "business_monthly": os.getenv("STRIPE_PRICE_BUSINESS_MONTHLY", "price_1Slv2x42VGYpyYwf2bv9X2Dx"),
+
+    # Annual prices
+    "starter_annual": os.getenv("STRIPE_PRICE_STARTER_ANNUAL", "price_1SlvMA42VGYpyYwfD1tZH85h"),
+    "pro_annual": os.getenv("STRIPE_PRICE_PRO_ANNUAL", "price_1SlvNA42VGYpyYwff9Txyq6X"),
+    "business_annual": os.getenv("STRIPE_PRICE_BUSINESS_ANNUAL", "price_1SlvNx42VGYpyYwfqEPEULNg"),
+
+    # Backward compatibility - default to monthly
+    "starter": os.getenv("STRIPE_PRICE_STARTER_MONTHLY", "price_1SluzH42VGYpyYwfjy3Ylk2o"),
+    "pro": os.getenv("STRIPE_PRICE_PRO_MONTHLY", "price_1Slv1h42VGYpyYwfHwnvlbzE"),
+    "business": os.getenv("STRIPE_PRICE_BUSINESS_MONTHLY", "price_1Slv2x42VGYpyYwf2bv9X2Dx"),
+
     # Anciens noms pour compatibilité
-    "standard": os.getenv("STRIPE_PRICE_STARTER", "price_starter"),
-    "premium": os.getenv("STRIPE_PRICE_PRO", "price_pro"),
-    "agency": os.getenv("STRIPE_PRICE_BUSINESS", "price_business")
+    "standard": os.getenv("STRIPE_PRICE_STARTER_MONTHLY", "price_1SluzH42VGYpyYwfjy3Ylk2o"),
+    "premium": os.getenv("STRIPE_PRICE_PRO_MONTHLY", "price_1Slv1h42VGYpyYwfHwnvlbzE"),
+    "agency": os.getenv("STRIPE_PRICE_BUSINESS_MONTHLY", "price_1Slv2x42VGYpyYwf2bv9X2Dx")
 }
 
 # Pydantic models
 class CheckoutSessionRequest(BaseModel):
-    plan: str  # standard, premium, agency
+    plan: str  # starter, pro, business
+    billing: str = "monthly"  # monthly or annual
     success_url: str
     cancel_url: str
 
@@ -52,6 +65,7 @@ class SubscriptionInfo(BaseModel):
 
 class PaymentIntentRequest(BaseModel):
     plan: str  # starter, pro, business
+    billing: str = "monthly"  # monthly or annual
 
 class PaymentIntentResponse(BaseModel):
     client_secret: str
@@ -66,14 +80,18 @@ async def create_checkout_session(
 ):
     """Create a Stripe Checkout session for subscription"""
     try:
-        print(f"🔍 Creating checkout session for plan: {request.plan}")
+        # Construct price key: plan_billing (e.g., "starter_monthly" or "starter_annual")
+        price_key = f"{request.plan}_{request.billing}"
+
+        print(f"🔍 Creating checkout session for plan: {request.plan}, billing: {request.billing}")
+        print(f"🔍 Price key: {price_key}")
         print(f"🔍 Available plans: {list(STRIPE_PRICE_IDS.keys())}")
-        print(f"🔍 Price ID for {request.plan}: {STRIPE_PRICE_IDS.get(request.plan)}")
+        print(f"🔍 Price ID for {price_key}: {STRIPE_PRICE_IDS.get(price_key)}")
 
         # Validate plan
-        if request.plan not in STRIPE_PRICE_IDS:
-            print(f"❌ Invalid plan: {request.plan}")
-            raise HTTPException(status_code=400, detail=f"Plan invalide: {request.plan}. Plans disponibles: {list(STRIPE_PRICE_IDS.keys())}")
+        if price_key not in STRIPE_PRICE_IDS:
+            print(f"❌ Invalid price key: {price_key}")
+            raise HTTPException(status_code=400, detail=f"Plan invalide: {price_key}. Plans disponibles: {list(STRIPE_PRICE_IDS.keys())}")
 
         # Check if user already has a Stripe customer ID
         customer_id = current_user.stripe_customer_id
@@ -98,7 +116,7 @@ async def create_checkout_session(
             customer=customer_id,
             payment_method_types=["card"],
             line_items=[{
-                "price": STRIPE_PRICE_IDS[request.plan],
+                "price": STRIPE_PRICE_IDS[price_key],
                 "quantity": 1,
             }],
             mode="subscription",
@@ -106,12 +124,14 @@ async def create_checkout_session(
             cancel_url=request.cancel_url,
             metadata={
                 "user_id": current_user.id,
-                "plan": request.plan
+                "plan": request.plan,
+                "billing": request.billing
             },
             subscription_data={
                 "metadata": {
                     "user_id": current_user.id,
-                    "plan": request.plan
+                    "plan": request.plan,
+                    "billing": request.billing
                 }
             }
         )
@@ -139,11 +159,15 @@ async def create_payment_intent(
 ):
     """Create a Stripe Payment Intent for embedded checkout with Payment Element"""
     try:
-        print(f"🔍 Creating payment intent for plan: {request.plan}")
+        # Construct price key: plan_billing (e.g., "starter_monthly" or "starter_annual")
+        price_key = f"{request.plan}_{request.billing}"
+
+        print(f"🔍 Creating payment intent for plan: {request.plan}, billing: {request.billing}")
+        print(f"🔍 Price key: {price_key}")
 
         # Validate plan
-        if request.plan not in STRIPE_PRICE_IDS:
-            raise HTTPException(status_code=400, detail=f"Plan invalide: {request.plan}")
+        if price_key not in STRIPE_PRICE_IDS:
+            raise HTTPException(status_code=400, detail=f"Plan invalide: {price_key}")
 
         # Get or create Stripe customer
         customer_id = current_user.stripe_customer_id
@@ -158,7 +182,7 @@ async def create_payment_intent(
             db.commit()
 
         # Get price details to determine amount
-        price_id = STRIPE_PRICE_IDS[request.plan]
+        price_id = STRIPE_PRICE_IDS[price_key]
         price = stripe.Price.retrieve(price_id)
 
         # Create subscription with payment intent
@@ -170,7 +194,8 @@ async def create_payment_intent(
             expand=["latest_invoice.payment_intent"],
             metadata={
                 "user_id": current_user.id,
-                "plan": request.plan
+                "plan": request.plan,
+                "billing": request.billing
             }
         )
 
@@ -214,10 +239,14 @@ async def create_payment_intent_guest(
 ):
     """Create Payment Intent for guest during registration flow"""
     try:
-        print(f"🔍 Creating payment intent for guest: {email}, plan: {request.plan}")
+        # Construct price key: plan_billing (e.g., "starter_monthly" or "starter_annual")
+        price_key = f"{request.plan}_{request.billing}"
 
-        if request.plan not in STRIPE_PRICE_IDS:
-            raise HTTPException(status_code=400, detail=f"Plan invalide: {request.plan}")
+        print(f"🔍 Creating payment intent for guest: {email}, plan: {request.plan}, billing: {request.billing}")
+        print(f"🔍 Price key: {price_key}")
+
+        if price_key not in STRIPE_PRICE_IDS:
+            raise HTTPException(status_code=400, detail=f"Plan invalide: {price_key}")
 
         # Find or create Stripe customer
         customers = stripe.Customer.list(email=email, limit=1)
@@ -228,14 +257,14 @@ async def create_payment_intent_guest(
             customer_id = customer.id
 
         # Create subscription
-        price_id = STRIPE_PRICE_IDS[request.plan]
+        price_id = STRIPE_PRICE_IDS[price_key]
         subscription = stripe.Subscription.create(
             customer=customer_id,
             items=[{"price": price_id}],
             payment_behavior="default_incomplete",
             payment_settings={"save_default_payment_method": "on_subscription"},
             expand=["latest_invoice.payment_intent"],
-            metadata={"email": email, "plan": request.plan, "type": "guest_registration"}
+            metadata={"email": email, "plan": request.plan, "billing": request.billing, "type": "guest_registration"}
         )
 
         payment_intent = subscription.latest_invoice.payment_intent
