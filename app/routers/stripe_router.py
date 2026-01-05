@@ -114,7 +114,15 @@ async def create_checkout_session(
         # Create checkout session
         checkout_session = stripe.checkout.Session.create(
             customer=customer_id,
-            payment_method_types=["card"],
+            payment_method_types=["card", "sepa_debit", "customer_balance"],
+            payment_method_options={
+                "customer_balance": {
+                    "funding_type": "bank_transfer",
+                    "bank_transfer": {
+                        "type": "eu_bank_transfer"
+                    }
+                }
+            },
             line_items=[{
                 "price": STRIPE_PRICE_IDS[price_key],
                 "quantity": 1,
