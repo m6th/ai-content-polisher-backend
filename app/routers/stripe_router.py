@@ -117,7 +117,6 @@ async def create_checkout_session(
             payment_method_types=[
                 "card",              # Visa, Mastercard, Amex
                 "sepa_debit",        # SEPA Direct Debit (EU)
-                "paypal",            # PayPal (freelancers, international)
                 "customer_balance",  # Bank transfers (EU)
                 "link",              # Stripe Link (autofill)
             ],
@@ -408,6 +407,17 @@ async def stripe_webhook(
         elif event.type == "invoice.payment_failed":
             invoice = event.data.object
             await handle_invoice_failed(invoice, db)
+
+        elif event.type == "payment_intent.succeeded":
+            payment_intent = event.data.object
+            print(f"✅ Payment intent succeeded: {payment_intent.id}")
+            # payment_intent.succeeded est déjà géré par invoice.payment_succeeded
+            # mais on le log pour les virements bancaires
+
+        elif event.type == "payment_intent.payment_failed":
+            payment_intent = event.data.object
+            print(f"❌ Payment intent failed: {payment_intent.id}")
+
         else:
             print(f"ℹ️  Unhandled event type: {event.type}")
 
