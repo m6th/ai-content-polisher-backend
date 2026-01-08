@@ -22,7 +22,7 @@ class SocialUrls(BaseModel):
 class OnboardingData(BaseModel):
     discovery_source: str
     preferred_networks: List[str]
-    social_urls: SocialUrls
+    social_urls: Optional[SocialUrls] = None
     preferred_style: str
     consent_data_storage: bool
 
@@ -50,13 +50,14 @@ def complete_onboarding(
 
     # Convert lists and dicts to JSON strings
     networks_json = json.dumps(data.preferred_networks)
-    social_urls_json = json.dumps(data.social_urls.dict())
+    social_urls_json = json.dumps(data.social_urls.dict()) if data.social_urls else None
 
     if onboarding:
         # Update existing onboarding
         onboarding.discovery_source = data.discovery_source
         onboarding.preferred_networks = networks_json
-        onboarding.social_urls = social_urls_json
+        if social_urls_json and hasattr(onboarding, 'social_urls'):
+            onboarding.social_urls = social_urls_json
         onboarding.preferred_style = data.preferred_style
         onboarding.consent_data_storage = data.consent_data_storage
         onboarding.completed = True
