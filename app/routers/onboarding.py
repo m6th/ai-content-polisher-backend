@@ -11,9 +11,18 @@ import json
 router = APIRouter(prefix="/onboarding", tags=["onboarding"])
 
 # Schemas
+class SocialUrls(BaseModel):
+    linkedin: Optional[str] = ''
+    twitter: Optional[str] = ''
+    instagram: Optional[str] = ''
+    facebook: Optional[str] = ''
+    tiktok: Optional[str] = ''
+    youtube: Optional[str] = ''
+
 class OnboardingData(BaseModel):
     discovery_source: str
     preferred_networks: List[str]
+    social_urls: SocialUrls
     preferred_style: str
     consent_data_storage: bool
 
@@ -21,6 +30,7 @@ class OnboardingStatus(BaseModel):
     completed: bool
     discovery_source: Optional[str] = None
     preferred_networks: Optional[List[str]] = None
+    social_urls: Optional[dict] = None
     preferred_style: Optional[str] = None
     completed_at: Optional[datetime] = None
 
@@ -38,13 +48,15 @@ def complete_onboarding(
         UserOnboarding.user_id == current_user.id
     ).first()
 
-    # Convert preferred_networks list to JSON string
+    # Convert lists and dicts to JSON strings
     networks_json = json.dumps(data.preferred_networks)
+    social_urls_json = json.dumps(data.social_urls.dict())
 
     if onboarding:
         # Update existing onboarding
         onboarding.discovery_source = data.discovery_source
         onboarding.preferred_networks = networks_json
+        onboarding.social_urls = social_urls_json
         onboarding.preferred_style = data.preferred_style
         onboarding.consent_data_storage = data.consent_data_storage
         onboarding.completed = True
@@ -56,6 +68,7 @@ def complete_onboarding(
             user_id=current_user.id,
             discovery_source=data.discovery_source,
             preferred_networks=networks_json,
+            social_urls=social_urls_json,
             preferred_style=data.preferred_style,
             consent_data_storage=data.consent_data_storage,
             completed=True,
@@ -98,13 +111,15 @@ def get_onboarding_status(
             completed_at=None
         )
 
-    # Parse preferred_networks JSON
+    # Parse JSON fields
     networks = json.loads(onboarding.preferred_networks) if onboarding.preferred_networks else []
+    social_urls = json.loads(onboarding.social_urls) if onboarding.social_urls else {}
 
     return OnboardingStatus(
         completed=onboarding.completed,
         discovery_source=onboarding.discovery_source,
         preferred_networks=networks,
+        social_urls=social_urls,
         preferred_style=onboarding.preferred_style,
         completed_at=onboarding.completed_at
     )

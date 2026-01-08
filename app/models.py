@@ -164,6 +164,7 @@ class UserOnboarding(Base):
     completed = Column(Boolean, default=False, nullable=False)
     discovery_source = Column(String, nullable=True)  # Comment ils nous ont trouvé
     preferred_networks = Column(Text, nullable=True)  # JSON array des réseaux préférés
+    social_urls = Column(Text, nullable=True)  # JSON object avec les URLs des réseaux sociaux
     preferred_style = Column(String, nullable=True)  # Style d'écriture préféré
     consent_data_storage = Column(Boolean, default=False, nullable=False)  # Consentement RGPD
     completed_at = Column(DateTime, nullable=True)  # Quand l'onboarding a été complété
