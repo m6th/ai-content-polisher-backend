@@ -155,3 +155,19 @@ class APIKey(Base):
     is_active = Column(Boolean, default=True, nullable=False)  # Clé active ou révoquée
 
     user = relationship("User")
+
+class UserOnboarding(Base):
+    __tablename__ = "user_onboarding"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, unique=True)
+    completed = Column(Boolean, default=False, nullable=False)
+    discovery_source = Column(String, nullable=True)  # Comment ils nous ont trouvé
+    preferred_networks = Column(Text, nullable=True)  # JSON array des réseaux préférés
+    preferred_style = Column(String, nullable=True)  # Style d'écriture préféré
+    consent_data_storage = Column(Boolean, default=False, nullable=False)  # Consentement RGPD
+    completed_at = Column(DateTime, nullable=True)  # Quand l'onboarding a été complété
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    user = relationship("User")
