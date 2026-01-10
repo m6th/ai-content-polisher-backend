@@ -6,6 +6,16 @@ from app.routers import users, content, analytics, admin, plans, ai, stripe_rout
 # Crée les tables (au cas où)
 Base.metadata.create_all(bind=engine)
 
+# Run migrations
+try:
+    import sys
+    import os
+    sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+    from run_migrations import run_migrations
+    run_migrations()
+except Exception as e:
+    print(f"Warning: Could not run migrations: {e}")
+
 app = FastAPI(
     title="AI Content Polisher",
     description="API pour transformer du texte en contenu adapté aux réseaux sociaux",
