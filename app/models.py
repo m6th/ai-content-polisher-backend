@@ -165,7 +165,10 @@ class UserOnboarding(Base):
     discovery_source = Column(String, nullable=True)  # Comment ils nous ont trouvé
     preferred_networks = Column(Text, nullable=True)  # JSON array des réseaux préférés
     social_urls = Column(Text, nullable=True)  # JSON object avec les URLs des réseaux sociaux
-    preferred_style = Column(String, nullable=True)  # Style d'écriture préféré
+    style_option = Column(String, nullable=True)  # 'personal', 'creator', 'predefined'
+    creator_url = Column(String, nullable=True)  # URL du créateur à imiter
+    preferred_style = Column(String, nullable=True)  # Style d'écriture préféré (pour predefined)
+    fallback_style = Column(String, nullable=True)  # Style de secours (pour personal/creator)
     consent_data_storage = Column(Boolean, default=False, nullable=False)  # Consentement RGPD
     completed_at = Column(DateTime, nullable=True)  # Quand l'onboarding a été complété
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)

@@ -23,7 +23,10 @@ class OnboardingData(BaseModel):
     discovery_source: str
     preferred_networks: List[str]
     social_urls: Optional[SocialUrls] = None
-    preferred_style: str
+    style_option: Optional[str] = None  # 'personal', 'creator', 'predefined'
+    creator_url: Optional[str] = None
+    preferred_style: Optional[str] = None  # For predefined style
+    fallback_style: Optional[str] = None  # Fallback for personal/creator
     consent_data_storage: bool
 
 class OnboardingStatus(BaseModel):
@@ -31,7 +34,10 @@ class OnboardingStatus(BaseModel):
     discovery_source: Optional[str] = None
     preferred_networks: Optional[List[str]] = None
     social_urls: Optional[dict] = None
+    style_option: Optional[str] = None
+    creator_url: Optional[str] = None
     preferred_style: Optional[str] = None
+    fallback_style: Optional[str] = None
     completed_at: Optional[datetime] = None
 
 @router.post("/complete")
@@ -58,7 +64,13 @@ def complete_onboarding(
         onboarding.preferred_networks = networks_json
         if social_urls_json and hasattr(onboarding, 'social_urls'):
             onboarding.social_urls = social_urls_json
+        if hasattr(onboarding, 'style_option'):
+            onboarding.style_option = data.style_option
+        if hasattr(onboarding, 'creator_url'):
+            onboarding.creator_url = data.creator_url
         onboarding.preferred_style = data.preferred_style
+        if hasattr(onboarding, 'fallback_style'):
+            onboarding.fallback_style = data.fallback_style
         onboarding.consent_data_storage = data.consent_data_storage
         onboarding.completed = True
         onboarding.completed_at = datetime.utcnow()
@@ -70,7 +82,10 @@ def complete_onboarding(
             discovery_source=data.discovery_source,
             preferred_networks=networks_json,
             social_urls=social_urls_json,
+            style_option=data.style_option,
+            creator_url=data.creator_url,
             preferred_style=data.preferred_style,
+            fallback_style=data.fallback_style,
             consent_data_storage=data.consent_data_storage,
             completed=True,
             completed_at=datetime.utcnow()
@@ -108,7 +123,11 @@ def get_onboarding_status(
             completed=False,
             discovery_source=None,
             preferred_networks=None,
+            social_urls=None,
+            style_option=None,
+            creator_url=None,
             preferred_style=None,
+            fallback_style=None,
             completed_at=None
         )
 
@@ -121,7 +140,10 @@ def get_onboarding_status(
         discovery_source=onboarding.discovery_source,
         preferred_networks=networks,
         social_urls=social_urls,
+        style_option=getattr(onboarding, 'style_option', None),
+        creator_url=getattr(onboarding, 'creator_url', None),
         preferred_style=onboarding.preferred_style,
+        fallback_style=getattr(onboarding, 'fallback_style', None),
         completed_at=onboarding.completed_at
     )
 
