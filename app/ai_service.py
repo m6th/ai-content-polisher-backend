@@ -142,10 +142,13 @@ FORMAT_MAX_TOKENS = {
     "persuasive": 800
 }
 
-def polish_content_multi_format(original_text: str, tone: str = "professional", language: str = "fr", user_plan: str = "free") -> dict:
+def polish_content_multi_format(original_text: str, tone: str = "professional", language: str = "fr", user_plan: str = "free", custom_style_analysis: str = None) -> dict:
     """
     Génère les formats selon le plan de l'utilisateur avec prompts optimisés
     Génère 3 variantes pour les plans Pro et Business
+
+    Args:
+        custom_style_analysis: Analyse du style personnalisé de l'utilisateur (si disponible)
     """
     import time
     from .plan_config import get_plan_config
@@ -154,7 +157,20 @@ def polish_content_multi_format(original_text: str, tone: str = "professional", 
     total_tokens = 0
 
     language_name = LANGUAGE_NAMES.get(language, "français")
-    tone_modifier = TONE_MODIFIERS.get(tone, TONE_MODIFIERS["professional"])
+
+    # Si un style custom est fourni, l'utiliser à la place du tone_modifier prédéfini
+    if custom_style_analysis:
+        tone_modifier = f"""STYLE PERSONNALISÉ À IMITER:
+{custom_style_analysis}
+
+IMPORTANT: Reproduis fidèlement ce style d'écriture, y compris:
+- Le ton et la voix
+- Les expressions et tournures de phrases caractéristiques
+- La structure et l'organisation des idées
+- L'utilisation d'émojis, ponctuation, et mise en forme
+- Le niveau de formalité et les choix de vocabulaire"""
+    else:
+        tone_modifier = TONE_MODIFIERS.get(tone, TONE_MODIFIERS["professional"])
 
     # Récupère le nombre de variantes selon le plan
     plan_config = get_plan_config(user_plan)

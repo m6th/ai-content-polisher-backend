@@ -52,11 +52,28 @@ def polish_content(
     from app.ai_service import polish_content_multi_format, generate_hashtags, generate_ai_suggestions
     from app.plan_config import get_plan_config
 
+    # Récupérer le style personnalisé si le tone commence par "custom_"
+    custom_style_analysis = None
+    if request.tone.startswith("custom_"):
+        try:
+            profile_id = int(request.tone.replace("custom_", ""))
+            style_profile = db.query(models.UserStyleProfile).filter(
+                models.UserStyleProfile.id == profile_id,
+                models.UserStyleProfile.user_id == current_user.id,
+                models.UserStyleProfile.status == "ready"
+            ).first()
+
+            if style_profile:
+                custom_style_analysis = style_profile.style_analysis
+        except ValueError:
+            pass  # Si l'ID n'est pas valide, on continue avec le tone normal
+
     all_formats, tokens_used = polish_content_multi_format(
         request.original_text,
         request.tone,
         request.language,
-        effective_plan
+        effective_plan,
+        custom_style_analysis=custom_style_analysis
     )
 
     # Récupère les features du plan

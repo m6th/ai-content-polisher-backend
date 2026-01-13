@@ -103,6 +103,39 @@ def run_migrations():
             else:
                 print("  ✅ Column fallback_style already exists")
 
+            # Check if user_style_profiles table exists
+            result = conn.execute(text("""
+                SELECT table_name
+                FROM information_schema.tables
+                WHERE table_name='user_style_profiles'
+            """))
+
+            table_exists = result.fetchone() is not None
+
+            if not table_exists:
+                print("  ➕ Creating user_style_profiles table...")
+                conn.execute(text("""
+                    CREATE TABLE user_style_profiles (
+                        id SERIAL PRIMARY KEY,
+                        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                        style_name VARCHAR NOT NULL,
+                        style_type VARCHAR NOT NULL,
+                        platform VARCHAR,
+                        source_url VARCHAR NOT NULL,
+                        style_analysis TEXT,
+                        sample_posts TEXT,
+                        status VARCHAR DEFAULT 'pending' NOT NULL,
+                        error_message TEXT,
+                        last_analyzed_at TIMESTAMP,
+                        created_at TIMESTAMP DEFAULT NOW() NOT NULL,
+                        updated_at TIMESTAMP DEFAULT NOW() NOT NULL
+                    )
+                """))
+                conn.commit()
+                print("  ✅ Table user_style_profiles created successfully!")
+            else:
+                print("  ✅ Table user_style_profiles already exists")
+
         print("✅ Migrations completed successfully!")
 
     except Exception as e:

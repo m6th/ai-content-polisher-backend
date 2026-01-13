@@ -175,3 +175,22 @@ class UserOnboarding(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
     user = relationship("User")
+
+class UserStyleProfile(Base):
+    __tablename__ = "user_style_profiles"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    style_name = Column(String, nullable=False)  # "Mon style LinkedIn", "Style de [Creator]", etc.
+    style_type = Column(String, nullable=False)  # 'personal' or 'creator'
+    platform = Column(String, nullable=True)  # 'linkedin', 'instagram', 'facebook' (pour personal)
+    source_url = Column(String, nullable=False)  # URL du compte analysé
+    style_analysis = Column(Text, nullable=True)  # Analyse détaillée du style par l'IA
+    sample_posts = Column(Text, nullable=True)  # JSON array des posts d'exemple
+    status = Column(String, default="pending", nullable=False)  # 'pending', 'analyzing', 'ready', 'failed'
+    error_message = Column(Text, nullable=True)  # Message d'erreur si l'analyse a échoué
+    last_analyzed_at = Column(DateTime, nullable=True)  # Dernière analyse
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    user = relationship("User")
