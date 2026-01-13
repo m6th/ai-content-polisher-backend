@@ -212,26 +212,60 @@ def detect_platform_from_url(url: str) -> str:
 def analyze_style_profile(profile_id: int, db: Session):
     """
     Analyse un profil de style en arrière-plan.
-    Cette fonction sera implémentée dans la prochaine étape avec le scraping.
-    Pour l'instant, on met juste un placeholder.
+    Scrape les posts et analyse le style d'écriture avec l'IA.
     """
-    # TODO: Implémenter le scraping et l'analyse IA
-    # Pour l'instant, on simule juste un délai
-    import time
-    time.sleep(2)
+    from app.scraper_service import analyze_style_from_url
+    from app.database import SessionLocal
 
-    # Récupérer le profil
-    profile = db.query(UserStyleProfile).filter(UserStyleProfile.id == profile_id).first()
-    if not profile:
-        return
-
-    # Pour l'instant, on marque comme "failed" avec un message explicatif
-    profile.status = "ready"
-    profile.style_analysis = "Analyse en cours de développement. Cette fonctionnalité sera bientôt disponible."
-    profile.last_analyzed_at = datetime.utcnow()
-    profile.error_message = None
+    # Créer une nouvelle session DB pour le thread background
+    db_session = SessionLocal()
 
     try:
-        db.commit()
-    except:
-        db.rollback()
+        # Récupérer le profil
+        profile = db_session.query(UserStyleProfile).filter(
+            UserStyleProfile.id == profile_id
+        ).first()
+
+        if not profile:
+            print(f"❌ Profile {profile_id} not found")
+            return
+
+        # Marquer comme "analyzing"
+        profile.status = "analyzing"
+        db_session.commit()
+
+        print(f"🔄 Starting analysis for profile {profile_id} ({profile.platform})")
+
+        # Lancer le scraping et l'analyse
+        result = analyze_style_from_url(
+            source_url=profile.source_url,
+            platform=profile.platform,
+            style_type=profile.style_type,
+            max_posts=10
+        )
+
+        # Mettre à jour le profil avec les résultats
+        profile.status = result['status']
+        profile.style_analysis = result.get('style_analysis')
+        profile.sample_posts = result.get('sample_posts')
+        profile.error_message = result.get('error_message')
+        profile.last_analyzed_at = datetime.utcnow()
+
+        db_session.commit()
+        print(f"✅ Analysis completed for profile {profile_id}: {profile.status}")
+
+    except Exception as e:
+        print(f"❌ Error analyzing profile {profile_id}: {e}")
+        try:
+            profile = db_session.query(UserStyleProfile).filter(
+                UserStyleProfile.id == profile_id
+            ).first()
+            if profile:
+                profile.status = "failed"
+                profile.error_message = f"Erreur inattendue: {str(e)}"
+                profile.last_analyzed_at = datetime.utcnow()
+                db_session.commit()
+        except:
+            pass
+    finally:
+        db_session.close()

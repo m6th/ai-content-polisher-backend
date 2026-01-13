@@ -95,6 +95,16 @@ def complete_onboarding(
     try:
         db.commit()
         db.refresh(onboarding)
+
+        # Si l'utilisateur a choisi "personal style", créer automatiquement les profils de style
+        if hasattr(onboarding, 'style_option') and onboarding.style_option == 'personal':
+            try:
+                from app.routers.onboarding_analyzer import create_styles_from_onboarding
+                create_styles_from_onboarding(current_user.id, db)
+            except Exception as e:
+                # Ne pas faire échouer l'onboarding si l'analyse échoue
+                print(f"Warning: Could not create style profiles: {e}")
+
         return {
             "message": "Onboarding completed successfully",
             "completed": True
