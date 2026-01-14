@@ -7,7 +7,7 @@ import json
 
 from app.database import get_db
 from app.models import User, UserStyleProfile, UserOnboarding
-from app.routers.auth import get_current_user
+from app.auth import get_current_user
 
 router = APIRouter(prefix="/styles", tags=["Style Profiles"])
 
