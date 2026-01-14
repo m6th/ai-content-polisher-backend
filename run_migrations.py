@@ -15,8 +15,34 @@ def run_migrations():
 
     print("🔄 Running database migrations...")
 
+    # Retry logic for DB connection
+    import time
+    max_retries = 5
+    retry_delay = 2  # seconds
+
+    for attempt in range(max_retries):
+        try:
+            print(f"  Attempt {attempt + 1}/{max_retries} to connect to database...")
+            engine = create_engine(database_url, connect_args={"connect_timeout": 10})
+
+            # Test connection
+            with engine.connect() as conn:
+                conn.execute(text("SELECT 1"))
+
+            print("  ✅ Database connection successful!")
+            break
+
+        except Exception as e:
+            print(f"  ⚠️  Connection attempt {attempt + 1} failed: {e}")
+            if attempt < max_retries - 1:
+                print(f"  ⏳ Waiting {retry_delay} seconds before retry...")
+                time.sleep(retry_delay)
+            else:
+                print("  ❌ Could not connect to database after all retries")
+                print("  ⚠️  Skipping migrations - app will start without them")
+                return
+
     try:
-        engine = create_engine(database_url)
 
         with engine.connect() as conn:
             # Check if social_urls column exists
