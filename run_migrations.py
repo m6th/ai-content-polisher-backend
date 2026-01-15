@@ -20,10 +20,21 @@ def run_migrations():
     max_retries = 5
     retry_delay = 2  # seconds
 
+    # Configuration pour Neon PostgreSQL
+    connect_args = {"connect_timeout": 10}
+    engine_kwargs = {}
+
+    if "neon.tech" in database_url:
+        connect_args["sslmode"] = "require"
+        engine_kwargs = {
+            "pool_pre_ping": True,
+            "pool_recycle": 300,
+        }
+
     for attempt in range(max_retries):
         try:
             print(f"  Attempt {attempt + 1}/{max_retries} to connect to database...")
-            engine = create_engine(database_url, connect_args={"connect_timeout": 10})
+            engine = create_engine(database_url, connect_args=connect_args, **engine_kwargs)
 
             # Test connection
             with engine.connect() as conn:

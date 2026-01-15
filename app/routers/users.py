@@ -84,6 +84,7 @@ async def google_auth(auth_data: GoogleAuthRequest, db: Session = Depends(get_db
         print(f"Token reçu: {auth_data.token[:50]}...")
 
         google_user = await verify_google_token(auth_data.token)
+        print(f"Google user vérifié: {google_user['email']}")
 
         # Cherche l'utilisateur par google_id ou email
         user = db.query(models.User).filter(
@@ -96,6 +97,7 @@ async def google_auth(auth_data: GoogleAuthRequest, db: Session = Depends(get_db
             # Les plans payants seront activés uniquement après paiement via Stripe
             plan = 'free'
             credits = get_plan_credits(plan)
+            print(f"Création nouvel utilisateur: {google_user['email']}")
 
             # Crée un nouveau compte
             user = models.User(
@@ -110,20 +112,28 @@ async def google_auth(auth_data: GoogleAuthRequest, db: Session = Depends(get_db
             db.add(user)
             db.commit()
             db.refresh(user)
+            print(f"Utilisateur créé avec ID: {user.id}")
         elif not user.google_id:
             # Lie le compte existant à Google
             user.google_id = google_user["google_id"]
             db.commit()
-        
+            print(f"Google ID lié à l'utilisateur existant: {user.id}")
+        else:
+            print(f"Utilisateur existant trouvé: {user.id}")
+
         # Génère un token JWT
         access_token_expires = timedelta(minutes=auth.ACCESS_TOKEN_EXPIRE_MINUTES)
         access_token = auth.create_access_token(
             data={"sub": str(user.id)}, expires_delta=access_token_expires
         )
-        
+
+        print(f"Connexion réussie pour: {user.email}")
         return {"access_token": access_token, "token_type": "bearer"}
-        
+
     except Exception as e:
+        import traceback
+        print(f"ERREUR Google Auth: {str(e)}")
+        print(traceback.format_exc())
         raise HTTPException(status_code=400, detail=str(e))
 
 class VerifyEmailRequest(BaseModel):
