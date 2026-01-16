@@ -16,6 +16,9 @@ router = APIRouter(prefix="/stripe", tags=["stripe"])
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET")
 
+# Debug: Log if webhook secret is configured
+print(f"🔑 STRIPE_WEBHOOK_SECRET configuré: {'Oui (' + STRIPE_WEBHOOK_SECRET[:10] + '...)' if STRIPE_WEBHOOK_SECRET else 'NON'}")
+
 # Plan to Stripe Price ID mapping - Support Monthly and Annual billing
 STRIPE_PRICE_IDS = {
     # Monthly prices
