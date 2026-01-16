@@ -5,18 +5,18 @@ import enum
 from app.database import Base
 
 class SubscriptionTier(str, enum.Enum):
-    FREE = "free"
-    BASIC = "basic"
-    PRO = "pro"
-    ENTERPRISE = "enterprise"
+    free = "free"
+    basic = "basic"
+    pro = "pro"
+    enterprise = "enterprise"
 
 class Platform(str, enum.Enum):
-    LINKEDIN = "linkedin"
-    INSTAGRAM = "instagram"
-    TIKTOK = "tiktok"
-    FACEBOOK = "facebook"
-    TWITTER = "twitter"
-    MULTI_FORMAT = "multi_format"
+    linkedin = "linkedin"
+    instagram = "instagram"
+    tiktok = "tiktok"
+    facebook = "facebook"
+    twitter = "twitter"
+    multi_format = "multi_format"
 
 class User(Base):
     __tablename__ = "users"
@@ -27,7 +27,7 @@ class User(Base):
     google_id = Column(String, unique=True, nullable=True, index=True)
     name = Column(String)
     created_at = Column(DateTime, default=datetime.utcnow)
-    subscription_tier = Column(Enum(SubscriptionTier), default=SubscriptionTier.FREE)
+    subscription_tier = Column(Enum(SubscriptionTier), default=SubscriptionTier.free)
     current_plan = Column(String, default="free")  # free, standard, premium, agency
     plan_started_at = Column(DateTime, default=datetime.utcnow)
     credits_remaining = Column(Integer, default=10)
