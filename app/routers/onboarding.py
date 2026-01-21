@@ -21,10 +21,11 @@ class SocialUrls(BaseModel):
 
 class OnboardingData(BaseModel):
     discovery_source: str
-    preferred_networks: List[str]
+    preferred_networks: Optional[List[str]] = []  # Made optional with default empty list
     social_urls: Optional[SocialUrls] = None
     style_option: Optional[str] = None  # 'personal', 'creator', 'predefined'
     creator_url: Optional[str] = None
+    creator_posts: Optional[str] = None  # Posts collés du créateur pour analyse
     preferred_style: Optional[str] = None  # For predefined style
     fallback_style: Optional[str] = None  # Fallback for personal/creator
     consent_data_storage: bool
@@ -68,6 +69,8 @@ def complete_onboarding(
             onboarding.style_option = data.style_option
         if hasattr(onboarding, 'creator_url'):
             onboarding.creator_url = data.creator_url
+        if hasattr(onboarding, 'creator_posts'):
+            onboarding.creator_posts = data.creator_posts
         onboarding.preferred_style = data.preferred_style
         if hasattr(onboarding, 'fallback_style'):
             onboarding.fallback_style = data.fallback_style
@@ -84,6 +87,7 @@ def complete_onboarding(
             social_urls=social_urls_json,
             style_option=data.style_option,
             creator_url=data.creator_url,
+            creator_posts=data.creator_posts,
             preferred_style=data.preferred_style,
             fallback_style=data.fallback_style,
             consent_data_storage=data.consent_data_storage,

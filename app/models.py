@@ -167,6 +167,7 @@ class UserOnboarding(Base):
     social_urls = Column(Text, nullable=True)  # JSON object avec les URLs des réseaux sociaux
     style_option = Column(String, nullable=True)  # 'personal', 'creator', 'predefined'
     creator_url = Column(String, nullable=True)  # URL du créateur à imiter
+    creator_posts = Column(Text, nullable=True)  # Posts du créateur collés pour analyse
     preferred_style = Column(String, nullable=True)  # Style d'écriture préféré (pour predefined)
     fallback_style = Column(String, nullable=True)  # Style de secours (pour personal/creator)
     consent_data_storage = Column(Boolean, default=False, nullable=False)  # Consentement RGPD
