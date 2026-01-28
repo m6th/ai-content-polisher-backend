@@ -121,9 +121,10 @@ STYLE: Persuasif, urgent, orienté action, focus bénéfices pas features."""
 }
 
 TONE_MODIFIERS = {
-    "professional": "Adopte un ton professionnel, formel et expert. Vocabulaire précis et crédible.",
-    "engaging": "Adopte un ton très engageant, dynamique et captivant. Crée de l'excitation et de l'énergie.",
-    "storytelling": "Adopte un ton narratif et captivant. Raconte une histoire avec émotions, personnages et arc narratif. Crée de l'identification et de l'impact émotionnel."
+    "professional": "Adopte un ton professionnel, formel et expert. Vocabulaire précis et crédible. Inspire confiance et autorité.",
+    "storytelling": "Adopte un ton narratif et captivant. Raconte une histoire avec émotions, personnages et arc narratif. Crée de l'identification et de l'impact émotionnel.",
+    "engaging": "Adopte un ton très engageant, dynamique et captivant. Crée de l'excitation et de l'énergie. Pose des questions, interpelle le lecteur.",
+    "educational": "Adopte un ton pédagogique et instructif. Explique clairement les concepts, utilise des exemples concrets. Apporte de la valeur et du savoir."
 }
 
 LANGUAGE_NAMES = {

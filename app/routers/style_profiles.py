@@ -35,15 +35,12 @@ class AvailableTone(BaseModel):
     status: Optional[str] = None  # Pour custom: 'pending', 'analyzing', 'ready', 'failed'
     platform: Optional[str] = None  # Pour custom personal: 'linkedin', 'instagram', etc.
 
-# Tons prédéfinis
+# Tons prédéfinis (4 tons optimisés pour la conversion)
 PREDEFINED_TONES = [
     {"id": "professional", "name": "Professionnel", "type": "predefined"},
-    {"id": "casual", "name": "Décontracté", "type": "predefined"},
-    {"id": "inspiring", "name": "Inspirant", "type": "predefined"},
-    {"id": "humorous", "name": "Humoristique", "type": "predefined"},
-    {"id": "educational", "name": "Éducatif", "type": "predefined"},
     {"id": "storytelling", "name": "Storytelling", "type": "predefined"},
-    {"id": "formal", "name": "Formel", "type": "predefined"},
+    {"id": "engaging", "name": "Engageant", "type": "predefined"},
+    {"id": "educational", "name": "Éducatif", "type": "predefined"},
 ]
 
 @router.get("/available-tones", response_model=List[AvailableTone])
@@ -53,7 +50,7 @@ def get_available_tones(
 ):
     """
     Retourne tous les tons disponibles pour l'utilisateur :
-    - Tons prédéfinis (7 styles)
+    - Tons prédéfinis (4 styles optimisés)
     - Styles personnels de l'utilisateur (provenant de ses réseaux sociaux)
     """
     # Commencer avec les tons prédéfinis

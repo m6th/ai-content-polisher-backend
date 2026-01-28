@@ -48,7 +48,7 @@ PLAN_CONFIG = {
         'price': 19.99,
         'credits': 200,  # Augmenté de 150 à 200
         'platforms': ['linkedin', 'instagram', 'tiktok', 'twitter', 'email', 'persuasive'],  # Tous les 6 formats
-        'tones': ['professional', 'casual', 'inspiring', 'humorous', 'educational', 'storytelling', 'formal', 'engaging'],  # Tous les tons
+        'tones': ['professional', 'storytelling', 'engaging', 'educational'],  # 4 tons optimisés
         'languages': ['fr', 'en', 'es'],
         'history_days': None,
         'features': {
@@ -70,7 +70,7 @@ PLAN_CONFIG = {
         'price': 44.99,
         'credits': 500,
         'platforms': ['linkedin', 'instagram', 'tiktok', 'twitter', 'email', 'persuasive'],  # Tous les 6 formats
-        'tones': ['professional', 'casual', 'inspiring', 'humorous', 'educational', 'storytelling', 'formal', 'engaging'],  # Tous les tons
+        'tones': ['professional', 'storytelling', 'engaging', 'educational'],  # 4 tons optimisés
         'languages': ['fr', 'en', 'es'],
         'history_days': None,
         'features': {
