@@ -414,3 +414,65 @@ RETOURNE UNIQUEMENT la liste des hashtags, un par ligne, sans numéros ni explic
     except Exception as e:
         print(f"❌ Erreur génération hashtags: {e}")
         return []
+
+
+def generate_content_ideas(theme: str, language: str = "fr", count: int = 3) -> list:
+    """
+    Génère des idées de contenu basées sur un thème donné.
+    Retourne une liste d'idées créatives et engageantes.
+    """
+    try:
+        language_name = LANGUAGE_NAMES.get(language, "français")
+
+        system_message = f"""Tu es un expert en création de contenu et en stratégie éditoriale.
+
+MISSION: Génère exactement {count} idées de contenu uniques et engageantes sur le thème donné.
+
+RÈGLES POUR CHAQUE IDÉE:
+✓ 2-4 phrases maximum par idée
+✓ Idée concrète et actionnable
+✓ Angle unique et original
+✓ Fort potentiel d'engagement
+✓ Adaptée aux réseaux sociaux (LinkedIn, Instagram, Twitter, etc.)
+✓ Inclut un élément de valeur ajoutée (conseil, insight, histoire, etc.)
+
+STRUCTURE DE CHAQUE IDÉE:
+- Titre/Hook accrocheur (1 ligne)
+- Description de l'angle à développer (1-2 phrases)
+- Point clé ou valeur ajoutée (1 phrase)
+
+LANGUE: Écris exclusivement en {language_name}.
+
+RETOURNE uniquement les {count} idées, séparées par "---" (trois tirets).
+Ne numérote pas les idées et n'ajoute aucune explication."""
+
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {"role": "system", "content": system_message},
+                {"role": "user", "content": f"Thème: {theme}"}
+            ],
+            temperature=0.9,
+            max_tokens=800,
+            top_p=0.95
+        )
+
+        ideas_text = response.choices[0].message.content.strip()
+
+        # Parse les idées séparées par ---
+        raw_ideas = ideas_text.split('---')
+        ideas = []
+
+        for idea in raw_ideas:
+            idea = idea.strip()
+            if idea and len(idea) > 20:  # Filtre les idées trop courtes
+                # Nettoie l'idée
+                idea = clean_generated_content(idea)
+                ideas.append(idea)
+
+        # S'assurer d'avoir exactement le nombre demandé
+        return ideas[:count]
+
+    except Exception as e:
+        print(f"❌ Erreur génération idées: {e}")
+        return []

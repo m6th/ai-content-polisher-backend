@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from typing import List, Optional
+from pydantic import BaseModel
 from app import crud, schemas, auth, models
 from app.database import get_db
 from app.utils.team_utils import get_effective_plan, get_effective_credits, deduct_credits
@@ -10,6 +11,19 @@ import zipfile
 from datetime import datetime
 
 router = APIRouter(prefix="/content", tags=["content"])
+
+
+# Schema for ideas generation
+class IdeasRequest(BaseModel):
+    theme: str
+    language: str = "fr"
+    count: int = 3
+
+
+class IdeasResponse(BaseModel):
+    ideas: List[str]
+    theme: str
+    language: str
 
 @router.post("/polish")
 def polish_content(
@@ -151,6 +165,42 @@ def polish_content(
         "tokens_used": tokens_used,
         "pro_trial_used": using_pro_trial  # Indique si l'essai Pro a été utilisé
     }
+
+
+@router.post("/ideas", response_model=IdeasResponse)
+def generate_ideas(
+    request: IdeasRequest,
+    current_user: models.User = Depends(auth.get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Génère des idées de contenu basées sur un thème.
+    Ne consomme pas de crédits.
+    """
+    from app.ai_service import generate_content_ideas
+
+    # Limite le count à 5 maximum
+    count = min(request.count, 5)
+
+    # Génère les idées
+    ideas = generate_content_ideas(
+        theme=request.theme,
+        language=request.language,
+        count=count
+    )
+
+    if not ideas:
+        raise HTTPException(
+            status_code=500,
+            detail="Erreur lors de la génération des idées. Veuillez réessayer."
+        )
+
+    return IdeasResponse(
+        ideas=ideas,
+        theme=request.theme,
+        language=request.language
+    )
+
 
 @router.get("/history")
 def get_content_history(
