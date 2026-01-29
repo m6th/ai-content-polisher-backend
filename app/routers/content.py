@@ -87,7 +87,8 @@ def polish_content(
         request.tone,
         request.language,
         effective_plan,
-        custom_style_analysis=custom_style_analysis
+        custom_style_analysis=custom_style_analysis,
+        selected_formats=request.formats
     )
 
     # Récupère les features du plan

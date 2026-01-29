@@ -143,13 +143,14 @@ FORMAT_MAX_TOKENS = {
     "persuasive": 800
 }
 
-def polish_content_multi_format(original_text: str, tone: str = "professional", language: str = "fr", user_plan: str = "free", custom_style_analysis: str = None) -> dict:
+def polish_content_multi_format(original_text: str, tone: str = "professional", language: str = "fr", user_plan: str = "free", custom_style_analysis: str = None, selected_formats: list = None) -> dict:
     """
     Génère les formats selon le plan de l'utilisateur avec prompts optimisés
     Génère 3 variantes pour les plans Pro et Business
 
     Args:
         custom_style_analysis: Analyse du style personnalisé de l'utilisateur (si disponible)
+        selected_formats: Liste des formats à générer (None = tous les formats disponibles pour le plan)
     """
     import time
     from .plan_config import get_plan_config
@@ -186,6 +187,10 @@ IMPORTANT: Reproduis fidèlement ce style d'écriture, y compris:
         # Plans payants : tous les 6 formats
         formats_to_generate = FORMAT_PROMPTS
         delay_ms = 100  # 100ms de délai entre chaque requête pour les plans payants
+
+    # Si des formats spécifiques sont demandés, les filtrer
+    if selected_formats and len(selected_formats) > 0:
+        formats_to_generate = {k: v for k, v in formats_to_generate.items() if k in selected_formats}
 
     for format_key, format_prompt in formats_to_generate.items():
         # Générer plusieurs variantes pour Pro/Business

@@ -33,6 +33,7 @@ class ContentRequestBase(BaseModel):
 
 class ContentRequestCreate(ContentRequestBase):
     use_pro_trial: Optional[bool] = False  # Utiliser le crédit d'essai Pro gratuit
+    formats: Optional[List[str]] = None  # Liste des formats à générer (None = tous les formats)
 
 class ContentRequestResponse(ContentRequestBase):
     id: int
