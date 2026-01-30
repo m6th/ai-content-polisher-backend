@@ -337,3 +337,86 @@ def test_email(
         "sent_to": current_user.email,
         "success": success
     }
+
+class DeleteAccountRequest(BaseModel):
+    confirmation: str  # Must be "DELETE" to confirm
+
+@router.delete("/account")
+def delete_account(
+    delete_request: DeleteAccountRequest,
+    current_user: models.User = Depends(auth.get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Supprime définitivement le compte utilisateur et toutes ses données.
+    Nécessite la confirmation "DELETE" pour éviter les suppressions accidentelles.
+    """
+    if delete_request.confirmation != "DELETE":
+        raise HTTPException(
+            status_code=400,
+            detail="Pour confirmer la suppression, envoyez 'DELETE' dans le champ confirmation"
+        )
+
+    user_id = current_user.id
+    user_email = current_user.email
+
+    try:
+        # 1. Supprimer tous les contenus générés (via les content requests)
+        content_requests = db.query(models.ContentRequest).filter(
+            models.ContentRequest.user_id == user_id
+        ).all()
+
+        for request in content_requests:
+            db.query(models.GeneratedContent).filter(
+                models.GeneratedContent.request_id == request.id
+            ).delete()
+
+        # 2. Supprimer toutes les requêtes de contenu
+        db.query(models.ContentRequest).filter(
+            models.ContentRequest.user_id == user_id
+        ).delete()
+
+        # 3. Supprimer les analytics d'utilisation
+        db.query(models.UsageAnalytics).filter(
+            models.UsageAnalytics.user_id == user_id
+        ).delete()
+
+        # 4. Supprimer les profils de style personnalisés
+        db.query(models.UserStyleProfile).filter(
+            models.UserStyleProfile.user_id == user_id
+        ).delete()
+
+        # 5. Supprimer les appartenances aux équipes
+        db.query(models.TeamMember).filter(
+            models.TeamMember.user_id == user_id
+        ).delete()
+
+        # 6. Si l'utilisateur est propriétaire d'une équipe, supprimer l'équipe
+        owned_teams = db.query(models.Team).filter(
+            models.Team.owner_id == user_id
+        ).all()
+
+        for team in owned_teams:
+            # Supprimer les membres de l'équipe
+            db.query(models.TeamMember).filter(
+                models.TeamMember.team_id == team.id
+            ).delete()
+            # Supprimer l'équipe
+            db.delete(team)
+
+        # 7. Supprimer l'utilisateur
+        db.delete(current_user)
+
+        db.commit()
+
+        return {
+            "message": "Compte et données supprimés définitivement",
+            "deleted_email": user_email
+        }
+
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erreur lors de la suppression du compte: {str(e)}"
+        )
